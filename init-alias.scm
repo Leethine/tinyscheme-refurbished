@@ -1,3 +1,0 @@
-;; Alias
-
-(define exit quit)
