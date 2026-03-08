@@ -1,0 +1,23 @@
+#!/bin/sh
+
+GCC_PLATFORM=gcc
+
+if [ "${1}" = "--clean" ] ; then
+  rm -f *.o tinyscheme scheme
+  echo "rm -f *.o tinyscheme scheme"
+  exit 0
+fi
+
+if [ "${1}" = "--arm32" ] ; then
+  # ARM32
+  GCC_PLATFORM=arm-linux-gnueabihf-gcc
+elif [ "${1}" = "--arm64" ] ; then
+  # ARM64
+  GCC_PLATFORM=aarch64-linux-gnu-gcc
+fi
+
+echo "building..."
+${GCC_PLATFORM} -fpic -I. -c -g -Wno-char-subscripts -O -DSUN_DL=1 -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0 dynload.c
+${GCC_PLATFORM} -fpic -I. -c -g -Wno-char-subscripts -O -DSUN_DL=1 -DUSE_DL=1 -DUSE_MATH=1 -DUSE_ASCII_NAMES=0 scheme_bin.c
+${GCC_PLATFORM} -fpic -I. -o tinyscheme -g -Wno-char-subscripts -O scheme_bin.o dynload.o -ldl -lm
+echo "done"
