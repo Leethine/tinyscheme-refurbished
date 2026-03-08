@@ -348,7 +348,6 @@
             (eq? x y)
             x
             (shared-tail-helper (cdr x) (cdr y))))
-
       (cond
          ((> len-x len-y)
             (shared-tail-helper
@@ -366,18 +365,19 @@
 ;;redefines call/cc in terms of old call/cc
 (unless (defined? 'dynamic-wind)
    (let
+      ;;
       ;;These functions are defined in the context of a private list of
       ;;pairs of before/after procs.
       (  (*active-windings* '())
+         ;;
          ;;We'll define some functions into the larger environment, so
          ;;we need to know it.
          (outer-env (current-environment)))
-
+      ;;
       ;;Poor-man's structure operations
       (define before-func car)
       (define after-func  cdr)
       (define make-winding cons)
-
       ;;Manage active windings
       (define (activate-winding! new)
          ((before-func new))
@@ -388,11 +388,11 @@
             ;;own exit.
             (set! *active-windings* (cdr *active-windings*))
             ((after-func old-top))))
-
+      ;;
       (define (set-active-windings! new-ws)
          (unless (eq? new-ws *active-windings*)
             (let ((shared (shared-tail new-ws *active-windings*)))
-
+               ;;
                ;;Define the looping functions.
                ;;Exit the old list.  Do deeper ones last.  Don't do
                ;;any shared ones.
@@ -407,11 +407,11 @@
                   (unless (eq? new-ws shared)
                      (push-many (cdr new-ws))
                      (activate-winding! (car new-ws))))
-
+               ;;
                ;;Do it.
                (pop-many)
                (push-many new-ws))))
-
+      ;;
       ;;The definitions themselves.
       (eval
          `(define call-with-current-continuation
