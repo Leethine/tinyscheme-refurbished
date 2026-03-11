@@ -1,4 +1,7 @@
-;    Initialization file for TinySCHEME 1.41
+; Initialization file for TinySCHEME 1.41
+;
+; DO NOT ADD EMPTY LINES WITHIN FUNCTION OR MACRO DEFINITION
+
 
 ; Per R5RS, up to four deep compositions should be defined
 (define (caar x) (car (car x)))
