@@ -101,7 +101,7 @@ static const char *strlwr(char *s) {
 #endif
 
 #ifndef InitFile
-# define InitFile "first-init-0-z-sqhdb-agv.scm888"
+# define InitFile ":@/!*"
 #endif
 
 #ifndef FIRST_CELLSEGS
