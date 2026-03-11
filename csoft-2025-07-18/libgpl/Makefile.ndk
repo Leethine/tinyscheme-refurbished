@@ -1,0 +1,128 @@
+# $Id: Makefile.ndk,v 1.3 2023/06/11 05:26:04 alex Exp alex $
+#
+#*******************************************************************************
+#
+#    Makefile for Android NDK
+#
+#    NOTE: This Makefile, directly and indirectly, uses GNU MAKE extensions.
+#    Consequently, use GNU MAKE to run it!  (If GNU MAKE is not available to
+#    you, it would be relatively easy to convert this Makefile and the setup
+#    file to a non-GNU Makefile by manually inserting the setup file.)
+#
+#    This Makefile builds software for an Android target using the Android
+#    Native Development Kit (NDK).  The Makefile initially includes
+#    "../include/android-ndk-make-setup.txt" to setup the MAKE variables
+#    for the NDK tools.  See that file for more detailed information,
+#    including how to configure the build environment for different target
+#    architectures and different Android API levels.
+#
+#    The following key MAKE variables are defined in the setup file:
+#
+#        CC and CFLAGS
+#        LD and LFLAGS
+#        AR and RANLIB
+#
+#    NOTE that, if you need to append arguments to CFLAGS or LFLAGS,
+#    use GNU MAKE's "+=" assignment operator.
+#
+#*******************************************************************************
+
+ROOT ?= ..
+
+ANDROID_NDK_MAKE_SETUP ?= $(ROOT)/include/android-ndk-make-setup.txt
+include $(ANDROID_NDK_MAKE_SETUP)
+
+LIBRARY = libgpl.a
+
+SRCS =	\
+	adx_util.c \
+	aperror.c \
+	bio_util.c \
+	bit_util.c \
+	bmw_util.c \
+	coli_util.c \
+	comx_util.c \
+	cosn_util.c \
+	crlf_util.c \
+	dae_util.c \
+	damx_util.c \
+	ddmx_util.c \
+	drs_util.c \
+	f1750a_util.c \
+	ffs.c \
+	fnm_util.c \
+	ftw_util.c \
+	get_util.c \
+	gimx_util.c \
+	gq_util.c \
+	gsc_util.c \
+	hash_util.c \
+	id3_frame.c \
+	id3_tag.c \
+	id3_util.c \
+	id3_value.c \
+	ieee_util.c \
+	iiop_util.c \
+	ins_util.c \
+	iox_util.c \
+	lemx_util.c \
+	lfn_util.c \
+	list_util.c \
+	log_util.c \
+	mdx_util.c \
+	meo_util.c \
+	nbr_util.c \
+	nbr_util_primes.c \
+	nbr_util_roots.c \
+	net_util.c \
+	nft_proc.c \
+	nft_util.c \
+	nnl_util.c \
+	nvl_util.c \
+	nvp_util.c \
+	opt_util.c \
+	port_util.c \
+	rex_internals.c \
+	rex_util.c \
+	rex_util_y.c \
+	sdx_util.c \
+	skt_util.c \
+	srt_util.c \
+	sto_util.c \
+	str_util.c \
+	tcp_util.c \
+	tpl_util.c \
+	ts_util.c \
+	tv_util.c \
+	udp_util.c \
+	utf_util.c \
+	vim_util.c \
+	vtmx_util.c \
+	wcs_util.c \
+	xdr_util.c \
+	xnet_util.c \
+	xqt_util.c
+
+
+OBJS = $(SRCS:.c=.o)
+
+ARFLAGS = rv
+CFLAGS += -g -O -Wall -Wno-long-long
+CPPFLAGS = \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(ROOT)/bsd-xdr
+RM = rm -f
+# Disable the implicit rule for YACC files.
+%.c: %.y
+
+
+all::	$(LIBRARY)
+
+$(LIBRARY): $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+clean::
+	-$(RM) $(OBJS) $(LIBRARY)

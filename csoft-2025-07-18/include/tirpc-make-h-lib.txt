@@ -1,0 +1,73 @@
+# $Id: tirpc-make-h-lib.txt,v 1.1 2023/01/17 06:13:29 alex Exp $
+#
+#*******************************************************************************
+#
+#    Transport-Independent Remote Procedure Call (TI-RPC) MAKE Tweaks
+#
+#
+#    When I installed a new version of Linux Mint XFCE on a laptop,
+#    I discovered that the SunRPC software had been removed from
+#    glibc and that the RPC/XDR functionality was now provided by
+#    libtirpc.
+#
+#    This had already been the case under Cygwin (for years?);
+#    see my Makefile.cygwin.  However, I use different versions
+#    of Linux (Mint) and I want Makefile.linux to work under
+#    any version.  Thus these tweaks to add "-I/usr/include/tirpc"
+#    to MAKE's CPPFLAGS and to add "-ltirpc" to LDLIBS.  (In fact,
+#    the header directory can be hard-coded in CPPFLAGS since
+#    GCC's C preprocessor will just skip the directory if it
+#    doesn't exist.  No such luck with LD and the library!)
+#
+#    After the preliminary declarations of CPPFLAGS and LDLIBS in
+#    a Makefile, this tweak file should be "include"d as follows
+#    (with "../" replaced with whatever is necessary to point to
+#    the "include/" directory containing the text file):
+#
+#        include ../include/tirpc-make-h-lib.txt
+#
+#    The GNUMAKE extensions used here check for the existence of the
+#    "/usr/include/tirpc" directory.  This tweak cannot be used in
+#    the Cygwin case, as shown in the following summary of current
+#    Cygwin and Linux handling of TI-RPC:
+#
+#        CYGWIN
+#        ------
+#            TI-RPC/XDR header files:	/usr/include/rpc
+#            TI-RPC/XDR library:		-ltirpc
+#
+#        LINUX
+#        -----
+#            TI-RPC/XDR header files:	/usr/include/tirpc/rpc
+#          * RPC header <rpc/netdb.h>:	/usr/include/rpc/netdb.h
+#            RPC/XDR library:		-ltirpc
+#
+#    NOTE that
+#
+#        (1) Cygwin stores the TI-RPC (I assume) header files in
+#            "/usr/include/rpc", NOT "/usr/include/tirpc/rpc".
+#
+#        (2) Linux Mint has a "/usr/include/rpc" directory with
+#            a single header file, "netdb.h".  (Judging by a
+#            7-year-old, mailing-list post, this is apparently
+#            a dummy header file installed for glibc and is a
+#            vestigial element of SunRPC, not germane to libtirpc.
+#
+#    Consequently, I can't share this tweak between my Cygwin and
+#    Linux Makefiles: Cygwin has no "/usr/include/tirpc" header
+#    directory despite using TI-RPC and Linux has both
+#    "/usr/include/rpc" and "/usr/include/tirpc"!  So, checking
+#    for the existence of "/usr/include/tirpc" only works under
+#    Linux (and checking for "/usr/include/rpc" means nothing).
+#
+#    Of course, I could go the autoconf route and have MAKE compile
+#    a test program that links to the TI-RPC library ...
+#
+#*******************************************************************************
+
+
+TIRPC_INCLUDE = /usr/include/tirpc
+ifeq ($(wildcard $(TIRPC_INCLUDE)), $(TIRPC_INCLUDE))
+CPPFLAGS += -I$(TIRPC_INCLUDE)
+LDLIBS += -ltirpc
+endif

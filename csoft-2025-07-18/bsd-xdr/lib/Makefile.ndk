@@ -1,0 +1,71 @@
+# $Id: Makefile.ndk,v 1.2 2023/06/11 05:22:11 alex Exp alex $
+#
+#*******************************************************************************
+#
+#    Makefile for Android NDK
+#
+#    NOTE: This Makefile, directly and indirectly, uses GNU MAKE extensions.
+#    Consequently, use GNU MAKE to run it!  (If GNU MAKE is not available to
+#    you, it would be relatively easy to convert this Makefile and the setup
+#    file to a non-GNU Makefile by manually inserting the setup file.)
+#
+#    This Makefile builds software for an Android target using the Android
+#    Native Development Kit (NDK).  The Makefile initially includes
+#    "../../include/android-ndk-make-setup.txt" to setup the MAKE variables
+#    for the NDK tools.  See that file for more detailed information,
+#    including how to configure the build environment for different target
+#    architectures and different Android API levels.
+#
+#    The following key MAKE variables are defined in the setup file:
+#
+#        CC and CFLAGS
+#        LD and LFLAGS
+#        AR and RANLIB
+#
+#    NOTE that, if you need to append arguments to CFLAGS or LFLAGS,
+#    use GNU MAKE's "+=" assignment operator.
+#
+#*******************************************************************************
+
+ROOT = ../..
+
+ANDROID_NDK_MAKE_SETUP ?= $(ROOT)/include/android-ndk-make-setup.txt
+include $(ANDROID_NDK_MAKE_SETUP)
+
+LIBRARY = libxdr
+
+SRCS =	\
+	xdr_array.c \
+	xdr.c \
+	xdr_float.c \
+	xdr_mem.c \
+	xdr_rec.c \
+	xdr_reference.c \
+	xdr_sizeof.c \
+	xdr_stdio.c
+
+#	xdr_private.c \
+
+OBJS = $(SRCS:.c=.o)
+
+BSD_XDR = $(ROOT)/bsd-xdr
+
+CPPFLAGS := \
+	-D_XDR_PRIVATE_H \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(BSD_XDR)
+
+CFLAGS += -g -O -Wall -pedantic
+
+ARFLAGS = rv
+
+all::	$(LIBRARY).a
+
+$(LIBRARY).a: $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+clean::
+	-$(RM) $(OBJS) $(LIBRARY).a

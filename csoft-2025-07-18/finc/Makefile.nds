@@ -1,0 +1,131 @@
+# $Id: Makefile.nds,v 1.2 2016/03/13 01:25:57 alex Exp alex $
+#
+
+PROGRAMS = finc nicl
+
+LIBRARY = libfinc
+
+SRCS =	\
+	words_drs.c \
+	words_lfn.c \
+	words_misc.c \
+	words_net.c \
+	words_iox.c \
+	words_skt.c \
+	words_tcp.c \
+	words_tv.c
+
+OBJS = $(SRCS:.c=.o)
+
+
+#*******************************************************************************
+#    A poor man's associative array!  I needed a map of program names to
+#    the '-b <icon> "<description>"' arguments for NDSTOOL, the utility
+#    that creates the NDS files.
+#
+#    MadScientist (Paul D. Smith) wrote an article about constructed macro
+#    names, which provided me an easy way to implement my associative array.
+#    The expression, "$($*<text>)", in the recipe for a rule constructs a
+#    macro name by appending "<text>" to the current target's name.  The
+#    macro with the constructed name can then be dereferenced.
+#
+#    In my case, I define a set of macros, "<program>_ICON_OPTION", whose
+#    value is the icon and description arguments to be placed on NDSTOOL's
+#    command line when <program> is being built.
+#
+#    See the "%.nds: %.c" rule's recipe: "$($*_ICON_OPTION)" has been added
+#    to NDSTOOL's command line.
+#*******************************************************************************
+
+finc_ICON_OPTION := -b icons/finc.bmp "finc;FICL with Networking;CSoft"
+nicl_ICON_OPTION := -b icons/nicl.bmp "nicl;Network FINC Server;CSoft"
+
+
+#*******************************************************************************
+#    Define the ARM-specific compilation tools to be used.  (Most NDS
+#    developers include devkitPro's "base_rules" and "ds_rules" for these
+#    definitions and for the suffix rules, but these files were written
+#    without following the conventions used in Make's implicit rules.
+#    The implicit rules work just fine for C and C++ files.)
+#PREFIX	=	arm-eabi-
+PREFIX	=	arm-none-eabi-
+AR	=	$(PREFIX)ar
+CC	=	$(PREFIX)gcc
+LD	=	$(PREFIX)gcc
+OBJCOPY	=	$(PREFIX)objcopy
+RANLIB	=	$(PREFIX)ranlib
+#*******************************************************************************
+
+ROOT = ..
+
+ARCH = nds
+INSTALL_DIR ?= $(HOME)/local/bin/$(ARCH)
+
+FICL_SRC =	$(ROOT)/ficl
+FICL_OBJ =	$(ROOT)/ficl
+
+CPPFLAGS := \
+	-DFICL_WANT_LZ_SOFTCORE=0 \
+	-Dlinux \
+	-DNDS \
+	-DARM9 \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(FICL_SRC) \
+	-I$(DEVKITPRO)/libnds/include
+
+CFLAGS := \
+	-g -Wall -O2 \
+	-ffast-math -fomit-frame-pointer \
+	-march=armv5te -mtune=arm946e-s \
+	-mthumb -mthumb-interwork
+
+LDFLAGS := \
+	-specs=ds_arm9.specs \
+	-mthumb -mthumb-interwork
+
+LDLIBS := \
+	-L. -lfinc \
+	-L$(ROOT)/libgpl -lgpl \
+	-L$(FICL_OBJ) -lficl \
+	-L$(DEVKITPRO)/libnds/lib -ldswifi9 -lfat -lnds9 \
+	-lm
+
+ARFLAGS = rv
+CP = cp -p
+
+all::	$(LIBRARY).a $(PROGRAMS:=.nds)
+
+$(LIBRARY).a: $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+#*******************************************************************************
+#
+#    For the NDS console, a program's main() function is actually in
+#    libgpl/StdIONDS.c.  StdIONDS.c's main() needs to call the program's
+#    main() function.  To accomplish this, "main" is changed to the program's
+#    name (by the C Preprocessor) in the program's C source file and that name
+#    is compiled into StdIONDS.c using a C Preprocessor symbol, "PROGRAM".
+#
+#    For example, program FINC's source file, "finc.c", is compiled with a
+#    "-Dmain=finc" command line option.  StdIONDS.c is then compiled with a
+#    "-DPROGRAM=finc" option.  As a result, main() in StdIONDS.c will call
+#    finc() in finc.c.
+#
+#*******************************************************************************
+
+%.nds: %.c
+	$(COMPILE.c) -Dmain=$(@:.nds=) -o $(@:.nds=).o $<
+	$(COMPILE.c) -DPROGRAM=$(@:.nds=) -DSPROGRAM=\"$(@:.nds=)\" -o StdIONDS.o $(ROOT)/libgpl/StdIONDS.c
+	$(LD) $(LDFLAGS) -o $(@:.nds=).elf StdIONDS.o $(@:.nds=).o $(LDLIBS)
+	$(OBJCOPY) -O binary $(@:.nds=).elf $(@:.nds=).arm9
+	ndstool -c $@ -9 $(@:.nds=).arm9 $($*_ICON_OPTION)
+	-$(RM) $(@:.nds=).o $(@:.nds=).elf $(@:.nds=).arm9
+
+clean::
+	-$(RM) *.o $(LIBRARY).a $(PROGRAMS:=.nds) *.arm9 *.elf
+
+install:
+	$(CP) $(PROGRAMS:=.nds) $(INSTALL_DIR)

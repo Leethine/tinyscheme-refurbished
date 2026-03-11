@@ -1,0 +1,14 @@
+/* $Id$ */
+/*******************************************************************************
+
+    limits.h
+
+    Standard C Limits.
+
+*******************************************************************************/
+
+#ifndef  PALM_LIMITS_H		/* Has the file been INCLUDE'd already? */
+#define  PALM_LIMITS_H  yes
+
+
+#endif				/* If this file was not INCLUDE'd previously. */

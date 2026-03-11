@@ -1,0 +1,122 @@
+# $Id: chafn_help.txt,v 1.1 2025/03/10 04:12:22 alex Exp $
+#*******************************************************************************
+#
+#    CHAFN Help Text
+#
+#*******************************************************************************
+#
+#    To compile this file into a program:
+#
+#    Convert the file into a list of C strings:
+#
+#        TEXT_H_LINE ("<first line>")
+#        TEXT_H_LINE ("<second line>")
+#        ...
+#        TEXT_H_LINE ("<last line>")
+#
+#    using the following sed(1) commands in the order given:
+#
+#        /^#/d		-- Delete lines beginning with "#"; i.e., this prologue.
+#        s|\\|\\\\|g	-- Escape all backslashes in the file so that the
+#			   C compiler inserts a literal backslash in the
+#			   string,  "\" => "\\".
+#        s|"|\\"|g	-- Escape all double quotes in the file so that
+#			   the C compiler can distinguish them from the
+#			   double quotes that will begin and end the string.
+#        s|	|\\t|g	-- Convert all tabs to C's "\t" specifier.  Either
+#        s|\t|\\t|g	   one of these commands will work.  The first has
+#			   an actual tab character for the search string;
+#			   the second has "\t", which sed will treat as
+#			   a tab character in the search string.
+#        s|\f|\\f|g	-- I like form feeds, so sue me!
+#			-- Surround the string: TEXT_H_LINE ("<string>").
+#        s|^|TEXT_H_LINE ("|
+#        s|$|")|
+#
+#    These commands are collected in "../include/text_h.sed" and can be
+#    invoked as follows:
+#
+#        % sed -f ../include/text_h.sed tag311_help.txt > tag311_help.h
+#
+#    Once the header file has been generated, TAG311 then "#define"s
+#    TEXT_H_LINE to print each line of text:
+#
+#        #define  TEXT_H_LINE(s)  fprintf (helpout, "%s\n", s) ;
+#        #include  "tag311_help.h"
+#
+#*******************************************************************************
+#
+#
+#    NOTE that the "Usage:" text is NOT included in this help text.
+#    The help text is only printed if the "-help" option is given,
+#    whereas the usage text is printed for that option, but also in
+#    the event of an error or if there are no command-line arguments.
+#    Enhancing the TEXT_H_LINE scheme to distinguish between the
+#    usage text and the fuller, additional help text seemed more
+#    trouble than it's worth.
+#
+---------
+I REPEAT:
+      To verify your changes before making them, first run CHAFN
+      with an initial "-test" option to show the results without
+      actually renaming the files:
+
+          % chafn -t ...	(Test but do NOT perform changes)
+---------
+
+Regular-Expression Matching and Substitution:
+
+    % chafn [-all] [-max <substitutions>] <pattern> <replacement> <file(s)>
+
+        First two non-option arguments are the pattern and replacement,
+        respectively.  Do NOT use this mode of operation with the other
+        file name modification options below.
+
+Case Conversion:
+
+    % chafn -capitalize <file(s)>
+    % chafn -lower <file(s)>
+    % chafn -upper <file(s)>
+
+Translate Selected Characters to Other Characters:
+
+    % chafn -xlat <translation> <file(s)>
+
+        For example, a translation string of "abcdef" translates a->b,
+        c->d, and e->f.
+
+Convert Square/Curly Brackets to Parentheses:
+
+    % chafn -brackets <file(s)>
+
+Smart Characters Converted to Normal ASCII:
+
+    % chafn -smart <file(s)>
+
+Insert Text at the Beginning of the File Name:
+
+    % chafn -prefix <text> <file(s)>
+
+Append Text at the End of the File Name:
+
+    % chafn -suffix <text> <file(s)>
+
+Append/Replace File Version Number, ".%03d":
+
+    % chafn [-increment <n>] -version <number> <file(s)>
+
+        The version number is incremented after each file name;
+        the default increment is 1.
+
+Audio File Name Modification:
+
+    % chafn -yphen <file(s)>    "<track> <song>"  =>  "<track> - <song>"
+    % chafn -Yphen <file(s)>    "<track>-<song>"  =>  "<track> - <song>"
+    % chafn -dot <file(s)>      "<track>. <song>" =>  "<track> - <song>"
+
+    % chafn [-increment <n>] -track <number> <file(s)>
+
+        Inserts "<number> - " at the beginning of file names.
+        Track numbers less than 10 have a leading 0; e.g., "07 - ".
+        The track number is incremented after each file name;
+        the default increment is 1.

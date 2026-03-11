@@ -1,0 +1,19 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# VS2010 $Id: bsd-xdr-standalone.sln,v 1.1 2019/07/09 02:58:33 alex Exp $
+Project("{46D5A4B5-A247-4467-90D0-98EB9012A796}") = "libxdr-standalone", "lib\libxdr-standalone.vcxproj", "{073B4892-F234-4375-964F-1E5DC82A3A6D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{073B4892-F234-4375-964F-1E5DC82A3A6D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{073B4892-F234-4375-964F-1E5DC82A3A6D}.Debug|Win32.Build.0 = Debug|Win32
+		{073B4892-F234-4375-964F-1E5DC82A3A6D}.Release|Win32.ActiveCfg = Release|Win32
+		{073B4892-F234-4375-964F-1E5DC82A3A6D}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

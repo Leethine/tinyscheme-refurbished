@@ -1,0 +1,118 @@
+# $Id: Makefile.nds,v 1.3 2011/07/18 17:34:58 alex Exp alex $
+#
+
+LIBRARY = libgpl
+
+SRCS =	\
+	adx_util.c \
+	aperror.c \
+	bio_util.c \
+	bit_util.c \
+	bmw_util.c \
+	coli_util.c \
+	comx_util.c \
+	cosn_util.c \
+	crlf_util.c \
+	damx_util.c \
+	ddmx_util.c \
+	drs_util.c \
+	f1750a_util.c \
+	ffs.c \
+	fnm_util.c \
+	ftw_util.c \
+	get_util.c \
+	gimx_util.c \
+	gq_util.c \
+	gsc_util.c \
+	hash_util.c \
+	id3_frame.c \
+	id3_tag.c \
+	id3_util.c \
+	id3_value.c \
+	ieee_util.c \
+	iiop_util.c \
+	ins_util.c \
+	iox_util.c \
+	lemx_util.c \
+	lfn_util.c \
+	list_util.c \
+	log_util.c \
+	mdx_util.c \
+	meo_util.c \
+	nbr_util.c \
+	nbr_util_primes.c \
+	nbr_util_roots.c \
+	net_util.c \
+	nft_proc.c \
+	nft_util.c \
+	nnl_util.c \
+	nvl_util.c \
+	nvp_util.c \
+	opt_util.c \
+	port_util.c \
+	rex_internals.c \
+	rex_util.c \
+	rex_util_y.c \
+	sdx_util.c \
+	skt_util.c \
+	srt_util.c \
+	sto_util.c \
+	str_util.c \
+	tcp_util.c \
+	tpl_util.c \
+	tv_util.c \
+	udp_util.c \
+	utf_util.c \
+	vim_util.c \
+	vtmx_util.c \
+	wcs_util.c \
+	xdr_util.c \
+	xnet_util.c
+
+
+OBJS = $(SRCS:.c=.o)
+
+#*******************************************************************************
+#    Define the ARM-specific compilation tools to be used.  (Most NDS
+#    developers include devkitPro's "base_rules" and "ds_rules" for these
+#    definitions and for the suffix rules, but these files were written
+#    without following the conventions used in Make's implicit rules.
+#    The implicit rules work just fine for C and C++ files.)
+#PREFIX	=	arm-eabi-
+PREFIX	=	arm-none-eabi-
+AR	=	$(PREFIX)ar
+CC	=	$(PREFIX)gcc
+RANLIB	=	$(PREFIX)ranlib
+#*******************************************************************************
+
+ROOT = ..
+
+CPPFLAGS := \
+	-DNDS \
+	-DARM9 \
+	-DREX_UTIL_RECURSIVE_SEARCH=1 \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(ROOT)/bsd-xdr \
+	-I$(DEVKITPRO)/libnds/include
+
+CFLAGS := \
+	-g -Wall -O2 \
+	-ffast-math -fomit-frame-pointer \
+	-march=armv5te -mtune=arm946e-s \
+	-mthumb -mthumb-interwork
+
+ARFLAGS = rv
+
+# Disable the implicit rule for YACC files.
+%.c: %.y
+
+all::	$(LIBRARY).a
+
+$(LIBRARY).a: $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+clean::
+	-$(RM) $(OBJS) $(LIBRARY).a

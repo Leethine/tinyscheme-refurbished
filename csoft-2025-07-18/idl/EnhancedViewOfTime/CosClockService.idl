@@ -1,0 +1,475 @@
+// $Id: CosClockService.idl,v 1.1 2021/09/04 05:55:31 alex Exp alex $
+#ifndef _CosClockService_IDL_
+#define _CosClockService_IDL_
+
+//Enhanced View of Time Service Specification, v2.0 - OMG IDL Summary File
+//Object Management Group, Inc.
+//Copyright © 1999, Objective Interface Systems
+//Copyright © 2007, Selex Sistemi Integrati
+//The companies listed above have granted to the Object Management Group, Inc.
+//(OMG) a nonexclusive, royalty-free, paid up, worldwide license to copy and
+//distribute this document and to modify this document and distribute copies of
+//the modified version. Each of the copyright holders listed above has agreed
+//that no person shall be deemed to have infringed the copyright in the included
+//material of any such copyright holder by reason of having used the
+//specification set forth herein or having conformed any computer software to
+//the specification.
+//
+//This file contains OMG IDL from the Naming Service Specification, v1.2.
+//OMG regularly publishes a summary file that contains all the "code" parts of
+//an OMG formal document. Every formal document line that is IDL, PIDL, or
+//language code is included in the summary file. The reason for such a listing
+//is to give readers an electronic version of the "code" so that they can
+//extract pieces of it. Readers might want to test an example, include it in
+//their own code, or use it for documentation purposes. Having the code lines
+//available electronically means there is less likelihood of a transcription
+//error.
+//File: CosClockService.idl
+
+// This module comprises the COS Clock service
+
+//******************************************************************************
+//    Commenting out these "#include"s because they generate duplicates
+//    of "#define"s of CORBA "const"s already defined in "gimx_idl.h".
+//
+//    #include <TimeBase.idl>
+//    #include <CosPropertyService.idl>
+//******************************************************************************
+
+#ifdef _PRE_3_0_COMPILER_
+# pragma prefix "omg.org"
+#endif
+
+//! CosClockService module maintains all EVoT interfaces.
+module CosClockService
+{
+
+#ifndef _PRE_3_0_COMPILER_
+  typeprefix CosClockService "omg.org";
+#endif
+
+  //! The minimum set of properties to be supported for a clock
+  module ClockProperty
+  {
+    typedef unsigned long Resolution;   //! units = nanoseconds
+    typedef short Precision;    /*! ceiling of log_2(seconds signified by least
+                                 * significant bit of time readout)
+                                 */
+    typedef unsigned short Width;   //! no. of bits in readout - usually <= 64
+    typedef string Stability_Description;
+
+    typedef short Coordination;
+    const Coordination Uncoordinated = 0;   //! only static characterization is available
+
+#ifndef LIGHTWEIGHT_SERVICE
+
+    const Coordination Coordinated = 1; //! measured against another source
+    const Coordination Faulty = 2;  //! e.g., there is a bit stuck
+
+    //! The following are only applicable for coordinated clocks
+    struct Offset
+    {
+      long long measured;   //! units = 100 nanoseconds
+      long long deliberate; //! units = 100 nanoseconds
+    };
+
+    typedef short Measurement;
+    const Measurement Not_Determined = 0;   //! has not been measured
+    const Measurement Discontinuous = 1;    //! e.g., one clock is paused
+    const Measurement Available = 2;    //! has been measured
+
+    typedef float Hz;
+    struct Skew
+    {
+      Measurement available;
+      Hz measured;      //! only meaningful if available = Available - in Hz
+      Hz deliberate;    //! in Hz
+    };
+    typedef float HzPerSec;
+    struct Drift
+    {
+      Measurement available;
+      HzPerSec measured;    /*! meaningful if available = Available
+                             * in Hz/sec
+                             */
+      HzPerSec deliberate; // in Hz/sec
+    };
+
+#endif // LIGHTWEIGHT_SERVICE
+
+    typedef short TimeScale;
+    const TimeScale Unknown = -1;
+    const TimeScale TAI = 0;    //! International Atomic Time
+    const TimeScale UT0 = 1;    //! diurnal day
+    const TimeScale UT1 = 2;    //! + polar wander
+    const TimeScale UTC = 3;    //! TAI + leap seconds
+    const TimeScale TT  = 4;    //! terrestrial time
+    const TimeScale TDB = 5;    //! Barycentric Dynamical Time
+    const TimeScale TCG = 6;    //! Geocentric Coordinate Time
+    const TimeScale TCB = 7;    //! Barycentric Coordinate Time
+    const TimeScale Sidereal = 8;      //! hour angle of vernal equinox
+    const TimeScale _Local   = 9;      //! UTC + time zone
+    const TimeScale GPS      = 10;     //! Global Positioning System
+    const TimeScale Other    = 0x7fff; //! e.g. mission
+
+#ifndef LIGHTWEIGHT_SERVICE
+
+    typedef short Stratum;
+    const Stratum unspecified = 0;
+    const Stratum primary_reference = 1;
+    const Stratum secondary_reference_base = 2;
+
+    typedef Clock CoordinationSource;   //! what clock is coordinating with
+
+#endif //  LIGHTWEIGHT_SERVICE
+
+    typedef string Comments;
+  };
+
+  /**
+  * This exception is raised whenever the underlying clock fails, or is unable to provide
+  * time that meets the required security assurance.
+  */
+  exception TimeUnavailable
+  {
+  };
+
+  /**
+   * The basic clock interface, a source of time readings
+   */
+  interface Clock
+  {
+   /**
+    * @brief The known properties of the clock.
+    * @return reference to clock's properties.
+    * @exception CORBA::SystemException if error occurs in setting properties
+    */
+    readonly attribute CosPropertyService::PropertySet properties;
+
+    /**
+     * @brief Provides a measure of the current time. The time unit is 100
+     * nanosecond i.e. 10e-7 seconds.
+     *
+     * @return TimeT with current time
+     * @exception CosClockService::TimeUnavailable if time is not available
+     *  with required security assurance.
+     *
+     * @note current_time is not a <code>readonly</code> attribute because
+     *       some idl compiler fault compiling it.
+     */
+    TimeBase::TimeT current_time() raises(TimeUnavailable);
+  };
+
+#ifndef LIGHTWEIGHT_SERVICE
+
+  enum TimeComparison
+  {
+    TCEqualTo,
+      TCLessThan,
+      TCGreaterThan,
+      TCIndeterminate
+  };
+
+  enum ComparisonType
+  {
+    IntervalC,
+      MidC
+  };
+
+  enum OverlapType
+  {
+    OTContainer,
+      OTContained,
+      OTOverlap,
+      OTNoOverlap
+  };
+
+  valuetype TimeSpan;
+
+  // replaces UTO from CosTime
+  valuetype UTC
+  {
+    factory init (in TimeBase::UtcT from);
+    factory compose (in TimeBase::TimeT time,
+      in unsigned long inacclo,
+      in unsigned short inacchi, in TimeBase::TdfT tdf);
+    public TimeBase::TimeT time;
+    public unsigned long inacclo;
+    public unsigned short inacchi;
+    public TimeBase::TdfT tdf;
+
+    TimeBase::InaccuracyT inaccuracy ();
+    TimeBase::UtcT utc_time ();
+
+    TimeComparison compare_time (in ComparisonType comparison_type,
+      in UTC with_utc);
+    TimeSpan interval ();
+  };
+
+  // replaces TIO from CosTime
+  valuetype TimeSpan
+  {
+    factory init (in TimeBase::IntervalT from);
+    factory compose (in TimeBase::TimeT lower_bound,
+      in TimeBase::TimeT upper_bound);
+
+    public TimeBase::TimeT lower_bound;
+    public TimeBase::TimeT upper_bound;
+    TimeBase::IntervalT time_interval ();
+    OverlapType spans (in UTC time, out TimeSpan overlap);
+    OverlapType overlaps (in TimeSpan other, out TimeSpan overlap);
+    UTC time ();
+  };
+
+  // replaces TimeService from CosTime
+  interface UtcTimeService:Clock
+  {
+    UTC universal_time () raises (TimeUnavailable);
+    UTC secure_universal_time () raises (TimeUnavailable);
+    UTC absolute_time (in UTC with_offset) raises (TimeUnavailable);
+  };
+
+#endif // LIGHTWEIGHT_SERVICE
+
+#if !defined(LIGHTWEIGHT_SERVICE) || defined(LWTIME_HAS_SUPPORT_OF_MULTIPLE_CLOCKS)
+
+  /**
+   * @brief The ClockCatalog interface allows applications to discover and select a clock for use.
+   *
+   * It is intended to be a light-weight alternative to the use of the Trading Service (for
+   * example, in embedded systems).
+   */
+  interface ClockCatalog
+  {
+
+   /**
+    *  @brief This structure holds the known information about a clock: its registered name and its$
+    *        object reference
+    */
+    struct ClockEntry
+    {
+      Clock subject;
+      string name;
+    };
+    typedef sequence < ClockEntry > ClockEntries;
+
+    //! Indicates that the catalog contains no entry with the given name.
+    exception UnknownEntry {};
+
+    ClockEntry get_entry(in string with_name) raises (UnknownEntry);
+    ClockEntries available_entries();
+    void register(in ClockEntry entry);
+    void delete_entry(in string with_name) raises (UnknownEntry);
+  };
+
+#endif // LIGHTWEIGHT_SERVICE
+
+  // a controllable clock
+  local interface ControlledClock: Clock
+  {
+    exception NotSupported {};
+    void set(in TimeBase::TimeT to) raises (NotSupported);
+    void set_rate(in float ratio) raises (NotSupported);
+    float get_rate() raises(NotSupported);
+    void pause() raises (NotSupported);
+    void resume() raises (NotSupported);
+    void terminate() raises (NotSupported);
+  };
+
+#ifndef LIGHTWEIGHT_SERVICE
+
+  // useful for building user synchronized clocks
+  interface SynchronizeBase : Clock
+  {
+    struct SyncReading
+    {
+      TimeBase::TimeT local_send;
+      TimeBase::TimeT local_receive;
+      TimeBase::TimeT remote_reading;
+    };
+    SyncReading synchronize_poll(in Clock with_master);
+  };
+  interface SynchronizedClock;
+
+  exception UnableToSynchronize
+  {
+    TimeBase::InaccuracyT minimum_error;
+  };
+  // allows definition of a new clock that uses the underlying hardware source
+  // of the existing clock but adjusts to synchronize with a master clock
+  interface Synchronizable : SynchronizeBase
+  {
+    const TimeBase::TimeT Forever = 0x7FFFFFFFFFFFFFFF;
+    SynchronizedClock new_slave (in Clock to_master,
+                                 in TimeBase::InaccuracyT to_within,
+                                 // synchronization envelope
+                                 in short retry_limit,
+                                 // if unable to attain accuracy
+                                 in TimeBase::TimeT minimum_delay_between_syncs,
+                                 // limits network traffic,
+                                 // Forever precludes auto resync
+                                 in CosPropertyService::Properties properties
+                                 // if null list, then inherit
+                                 // properties of self
+      ) raises (UnableToSynchronize);
+  };
+  // able to explicitly control synchronization
+  interface SynchronizedClock : Clock
+  {
+    void resynch_now()
+      raises (UnableToSynchronize);
+  };
+
+#endif // LIGHTWEIGHT_SERVICE
+
+
+#if !defined(LIGHTWEIGHT_SERVICE) || defined(LWTIME_HAS_SUPPORT_OF_PERIODIC_EXECUTION_CONTROL)
+
+  module PeriodicExecution
+  {
+    local interface Controller;
+
+#ifndef LIGHTWEIGHT_SERVICE
+
+    typedef short ControllerUpdateStrategy;
+    const ControllerUpdateStrategy UNDEFINED =-1;
+    const ControllerUpdateStrategy CANCEL_ALL = 0;
+    const ControllerUpdateStrategy ENFORCE_INTERVAL = 1;
+    const ControllerUpdateStrategy ENFORCE_DEADLINE = 2;
+    const ControllerUpdateStrategy USER_DEFINED_0 = 3;
+    const ControllerUpdateStrategy USER_DEFINED_1 = 4;
+    const ControllerUpdateStrategy USER_DEFINED_2 = 5;
+
+    local interface ControllerUpdateHandler
+    {
+      void on_set(in Controller aController);
+      void on_set_rate(in Controller aController);
+      void on_pause(in Controller aController);
+      void on_terminate(in Controller aCntroller);
+      void on_resume(in Controller aController);
+    };
+
+    local interface ControllerUpdateStrategyRegistry
+    {
+      exception StrategyAlreadyExist {};
+      exception UnknownStrategy {};
+      exception OperationNotAllowed {};
+      void register(in ControllerUpdateStrategy aStrategy,
+                    in ControllerUpdateHandler handler)
+        raises (StrategyAlreadyExist, OperationNotAllowed);
+      void unregister(in ControllerUpdateStrategy id)
+        raises (UnknownStrategy, OperationNotAllowed);
+      ControllerUpdateHandler get_strategy(in ControllerUpdateStrategy id)
+        raises (UnknownStrategy);
+    };
+
+#endif // LIGHTWEIGHT_SERVICE
+
+    // (conceptually abstract) base for objects that can be invoked periodically
+    interface Periodic
+    {
+      boolean do_work(in any params);
+      // return FALSE terminates periodic execution
+    };
+
+    // control object for periodic execution
+    local interface Controller
+    {
+      exception TimePast {};
+      void start(in TimeBase::TimeT period,
+                 in TimeBase::TimeT with_offset,
+                 in unsigned long execution_limit, // 0 = no limit
+                 in any params);
+      void start_at(in TimeBase::TimeT period,
+                    in TimeBase::TimeT at_time,
+                    in unsigned long execution_limit, // 0 = no limit
+                    in any params)
+        raises (TimePast);
+      void pause();
+      void resume();
+      void resume_at(in TimeBase::TimeT at_time)
+        raises(TimePast);
+      unsigned long executions();
+      void stop();
+      void terminate();
+
+#ifndef LIGHTWEIGHT_SERVICE
+
+      void set_update_strategy(in ControllerUpdateStrategy id)
+        raises (ControllerUpdateStrategyRegistry::UnknownStrategy);
+      ControllerUpdateStrategy get_update_strategy();
+
+#endif  // LIGHTWEIGHT_SERVICE
+
+    };
+
+    // factory clock for periodic execution
+    local interface Executor : Clock
+    {
+      Controller enable_periodic_execution(in Periodic on);
+    };
+
+    local interface ControlledExecutor
+      :Executor
+      ,ControlledClock
+    {
+
+#ifndef LIGHTWEIGHT_SERVICE
+
+      Controller
+        enable_periodic_execution_with_strategy(in CosClockService::PeriodicExecution::Periodic on,
+                                                in ControllerUpdateStrategy id)
+        raises (ControllerUpdateStrategyRegistry::UnknownStrategy);
+      void set_controller_update_strategy(in ControllerUpdateStrategy id)
+        raises (ControllerUpdateStrategyRegistry::UnknownStrategy);
+      ControllerUpdateStrategy get_controller_update_strategy();
+
+#endif //  LIGHTWEIGHT_SERVICE
+
+    };
+  };
+#endif // LWTIME_HAS_SUPPORT_OF_PERIODIC_EXECUTION_CONTROL
+
+#ifndef LIGHTWEIGHT_SERVICE
+
+  module Monotonicity
+  {
+    enum RecoveryStrategy
+    {
+      IGNORE, // Ignore violation
+      SLOW_DOWN, // Slow down the clock so to recover monotonicity
+      STALL // Stall the clock up to when the violation condition has been risolved
+    };
+
+    struct Violation
+    {
+      long min_interval; // minimum time interval (in nsec) to be considered as a violation
+      long max_interval; // max time interval (in nsec) to be considered as a violation. Greate interval
+      // will be regarded as clock failure
+      RecoveryStrategy strategy;
+    };
+
+    local interface ViolationHandler;
+    local interface ViolationRegistry
+    {
+      // Register an handler for a given clock providing the monotonicity recovering strategy.
+      // By default the monotonicity violation are ignored.
+      void register_handler(in Clock aClock,
+                            in Violation aViolation,
+                            in ViolationHandler aHandler);
+      void unregister_handler(in ViolationHandler aHandler);
+    };
+
+    local interface ViolationHandler
+    {
+      //
+      void handle_violation(in Clock aClock, in Violation aViolation);
+    };
+
+  };
+
+#endif // LIGHTWEIGHT_SERVICE
+
+
+};
+#endif // _CosClockService_IDL_

@@ -1,0 +1,159 @@
+# $Id: Makefile.cygwin,v 1.2 2019/05/30 02:08:50 alex Exp alex $
+#
+
+LIBRARY = libgpl.a
+
+REX_GRAMMAR := rex_util_y
+
+SRCS =	\
+	adx_util.c \
+	aperror.c \
+	bio_util.c \
+	bit_util.c \
+	bmw_util.c \
+	coli_util.c \
+	comx_util.c \
+	cosn_util.c \
+	crlf_util.c \
+	dae_util.c \
+	damx_util.c \
+	ddmx_util.c \
+	drs_util.c \
+	f1750a_util.c \
+	ffs.c \
+	fnm_util.c \
+	ftw_util.c \
+	get_util.c \
+	gimx_util.c \
+	gq_util.c \
+	gsc_util.c \
+	hash_util.c \
+	id3_frame.c \
+	id3_tag.c \
+	id3_util.c \
+	id3_value.c \
+	ieee_util.c \
+	iiop_util.c \
+	ins_util.c \
+	iox_util.c \
+	lemx_util.c \
+	lfn_util.c \
+	list_util.c \
+	log_util.c \
+	mdx_util.c \
+	meo_util.c \
+	nbr_util.c \
+	nbr_util_primes.c \
+	nbr_util_roots.c \
+	net_util.c \
+	nft_proc.c \
+	nft_util.c \
+	nnl_util.c \
+	nvl_util.c \
+	nvp_util.c \
+	opt_util.c \
+	port_util.c \
+	rex_internals.c \
+	rex_util.c \
+	$(REX_GRAMMAR).c \
+	sdx_util.c \
+	skt_util.c \
+	srt_util.c \
+	sto_util.c \
+	str_util.c \
+	tcp_util.c \
+	tpl_util.c \
+	ts_util.c \
+	tv_util.c \
+	udp_util.c \
+	utf_util.c \
+	vim_util.c \
+	vtmx_util.c \
+	wcs_util.c \
+	xdr_util.c \
+	xnet_util.c \
+	xqt_util.c
+
+
+OBJS = $(SRCS:.c=.o)
+
+ROOT = ..
+
+IDLH2C = idlh2c.py
+CORBA_IDL_C = gimx_idl.c.new
+CORBA_IDL_H = $(ROOT)/include/gimx_idl.h
+DAIS_IDL_C = damx_idl.c.new
+DAIS_IDL_H = $(ROOT)/include/damx_idl.h
+DDS_IDL_C = ddmx_idl.c.new
+DDS_IDL_H = $(ROOT)/include/ddmx_idl.h
+EVOT_IDL_C = vtmx_idl.c.new
+EVOT_IDL_H = $(ROOT)/include/vtmx_idl.h
+LECIS_IDL_C = lemx_idl.c.new
+LECIS_IDL_H = $(ROOT)/include/lemx_idl.h
+
+ARFLAGS = rv
+AWK = awk
+CFLAGS = -g -O -Wall -pedantic -Wno-long-long
+		# Define XDRREC_CADDR_T.  The readit()/writeit() functions
+		# passed to xdrrec_create() expect "char *" pointers on some
+		# platforms; on other platforms (e.g. Cygwin's libtirpc),
+		# "void *" pointers are expected.  The affected functions
+		# are xnetReadStream()/xnetWriteStream() in xnet_util.c.
+CPPFLAGS = \
+	-DXDRREC_CADDR_T="void *" \
+	-DREX_UTIL_RECURSIVE_SEARCH=1 \
+	-I. \
+	-I$(ROOT)/include
+MV = mv
+RANLIB = ranlib
+RM = rm -f
+SED = sed
+
+BISON = bison
+BISONFLAGS =
+# Disable the implicit rule for YACC files.
+%.c: %.y
+
+all::	$(LIBRARY)
+
+new:	$(CORBA_IDL_C) $(DAIS_IDL_C) $(DDS_IDL_C) $(EVOT_IDL_C) $(LECIS_IDL_C)
+
+$(LIBRARY): $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+$(REX_GRAMMAR).c.new:  $(REX_GRAMMAR).y
+	$(BISON) $(BISONFLAGS) -o $@ $(REX_GRAMMAR).y
+	$(SED) -i 's/"rex_util_y.c.new"/"rex_util_y.c"/' $@
+
+rex_tokens.h.new:  $(REX_GRAMMAR).y
+	-$(RM) $@
+	$(AWK)	\
+		'/^%token/ { printf "    { (long) %s, \"%s\" },\n", $$2, $$2 }'	\
+		< $(REX_GRAMMAR).y >$@
+
+$(CORBA_IDL_C):  $(CORBA_IDL_H) $(IDLH2C)
+	-$(RM) $@
+	$(IDLH2C) --preDefs $(ROOT)/include/gimx_post.py --prefix=gimx $(CORBA_IDL_H) >$@
+
+$(DAIS_IDL_C):  $(DAIS_IDL_H) $(IDLH2C)
+	-$(RM) $@
+	$(IDLH2C) --preDefs $(ROOT)/include/damx_post.py --prefix=damx $(DAIS_IDL_H) >$@
+
+$(DDS_IDL_C):  $(DDS_IDL_H) $(IDLH2C)
+	-$(RM) $@
+	$(IDLH2C) --preDefs $(ROOT)/include/ddmx_post.py --prefix=ddmx $(DDS_IDL_H) >$@
+
+$(EVOT_IDL_C):  $(EVOT_IDL_H) $(IDLH2C)
+	-$(RM) $@
+	$(IDLH2C) --preDefs $(ROOT)/include/vtmx_post.py --prefix=vtmx $(EVOT_IDL_H) >$@
+
+$(LECIS_IDL_C):  $(LECIS_IDL_H) $(IDLH2C)
+	-$(RM) $@
+	$(IDLH2C) --preDefs $(ROOT)/include/lemx_post.py --prefix=lemx $(LECIS_IDL_H) >$@
+
+clean::
+	-$(RM) $(OBJS) $(LIBRARY)
+	-$(RM) $(CORBA_IDL_C) $(DAIS_IDL_C) $(DDS_IDL_C)
+	-$(RM) $(EVOT_IDL_C) $(LECIS_IDL_C)

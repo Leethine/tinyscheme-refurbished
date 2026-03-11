@@ -1,0 +1,6 @@
+I don't know why you say, "Goodbye", I say "Hello, World!"
+----------------------------------------------------------
+
+I began working on Makefile.recurse in the summer of 2021,
+but I got distracted by other things.  Maybe, hopefully,
+I'll get back to it eventually.

@@ -1,0 +1,414 @@
+# $Id: rex_henry_spencer_tests.txt,v 1.2 2023/05/25 02:45:21 alex Exp $
+#*******************************************************************************
+#
+#    Modified Henry Spencer's regexp(3) Test File
+#
+#    This is Henry Spencer's regexp(3) test file modified to use
+#    the RE syntax of my REX_UTIL package.
+#
+#    Each line is a test with 6 tab-separated fields:
+#
+#        <test#>	- Test number.
+#        <find>		- Regular expression.
+#        <text>		- Text against which the RE is matched.
+#        <status>	- Expected test status:
+#			    'c' for RE compile error,
+#			    'y' if the RE is matched in <text>,
+#			    'n' if the RE is NOT matched in <text>.
+#        <source>	- A string whose references to the match and the
+#			  capture groups in the regular expression will be
+#			  substituted with the matched text.
+#        <result>	- Expected result of the substitution.
+#
+#    (NOTE that <source> is NOT used for a typical search and replace in
+#    <text>, but to test substitution.  The source string only makes use
+#    of the matched text and not the portions of <text> before and after
+#    the match.)
+#
+#    Henry Spencer's actual test file had 5 fields per line.  To make it
+#    easier to identify and correlate tests, I added a new field, the test
+#    number, to both (1) my modified tests and (2) the copy of Henry's
+#    original tests further down below.
+#
+#    A solitary hyphen ("-") for a field indicates that the field is
+#    not used in the test.  Tests whose REs should fail to compile
+#    have a <text> field of "-".  Tests which don't test substitution
+#    have <replace> and <result> fields of "-".
+#
+#    Exactly one tab separates adjacent fields.  Consequently, a tab
+#    at the very beginning of the line means <find> is an empty string
+#    (""):
+#
+#        "<test#>\t\t<text>\t<status>\t<replace>\t<result>"
+#
+#    Likewise, two consecutive tabs mean the in-between field is
+#    an empty string; for example, two tabs after the <find> field
+#    mean that <text> is an empty string:
+#
+#        "<test#>\t<find>\t\t<status>\t<replace>\t<result>"
+#
+#    At the end of this file, you'll find Henry Spencer's original test
+#    file (commented out).
+#
+#*******************************************************************************
+#
+#    To compile this file into a test program:
+#
+#    Convert the file into an array of C strings using the following sed
+#    commands in the order given:
+#
+#        s|\\|\\\\|g	-- Escape all backslashes in the file so that the
+#			   C compiler inserts a literal backslash in the
+#			   string,  "\" => "\\".
+#        s|"|\\"|g	-- Escape all double quotes in the file so that
+#			   the C compiler can distinguish them from the
+#			   double quotes that will begin and end the string.
+#        s|	|\\t|g	-- Convert all tabs to C's "\t" specifier.  Either
+#        s|\t|\\t|g	   one of these commands will work.  The first has
+#			   an actual tab character for the search string;
+#			   the second has "\t", which sed will treat as
+#			   a tab character in the search string.
+#        s|\f|\\f|g	-- I like form feeds, so sue me!
+#        s|^|    "|	-- Indent and insert a double quote delimiter at
+#			   the beginning of the string.
+#        s|$|",|	-- Append a double quote delimiter at the end of
+#			   the string, plus a comma.
+#
+#    Insert the output into a C array of strings:
+#
+#        static  const  char  *HenrySpencersTestFile[] = {
+#        "<first-line>",
+#        ...,
+#        "#        (2) Replaced all \"\\N\"s in 4th and 5th columns by \"$N\".",
+#        ...,
+#        "#65\t((a))\tabc\ty\t&-\\1-\\2\ta-a-a",
+#        ...,
+#        "<last-line>",
+#        NULL
+#        } ;
+#
+#    The comment line "(2)" is the escaped translation of this line in this
+#    file:
+#
+#        ==>#        (2) Replaced all "\N"s in 4th and 5th columns by "$N".<==
+#
+#    The other line shown is the translation of one of Henry Spencer's tests;
+#    the 5 regions of space are the 5 tab characters separating the 6 fields:
+#
+#        ==>#65	((a))	abc	y	&-\1-\2	a-a-a<==
+#
+#*******************************************************************************
+
+#*******************************************************************************
+#
+#        SIDENOTE:
+#
+#        Wow!  I had tested my regular expression package against Henry
+#        Spencer's test file--with appropriate changes made for my RE
+#        syntax--back in the early 1990s.  Somehow, my modified test
+#        file disappeared.  When I downloaded Henry Spencer's rexexp(3)
+#        package in 2018 to incorporate his test file in my TREX program
+#        ("../tools/trex.c"), I thought I was going to have to again go
+#        through his test file, line by line and character by character,
+#        to convert it to my RE sytax.
+#
+#        Then, on May 27, 2019 at about 12:40 A.M., I happened upon my
+#        heretofore missing test file in a long-forgotten subdirectory.
+#        Hooray!!!  A big load off my mind!  (Back in 1996, there was
+#        a discussion about regular expressions on the comp.lang.tcl
+#        USENET newsgroup and some kind soul had recommended my package.
+#        I assembled a mini-distribution of my LIBGPL library containing
+#        only the files needed by the REX_UTIL package and my test program
+#        that read and checked the modified test file.  The Tcl developers
+#        went ahead and used Henry Spencer's package anyway, but at least
+#        I now have the test file AND the test program that read the file!)
+#
+#    Here is Henry Spencer's regexp(3) test file modified to use the RE
+#    syntax of my REX_UTIL package.  My original REX_UTIL package used
+#    a different syntax, so the modifications were more extensive back
+#    in the 1990s.  In 2021, after experience with the Sigil EPUB editor's
+#    regular expressions, I changed the syntax to more closely match that
+#    used by Henry Spencer.  Consequently, the only modification required
+#    now was:
+#
+#        (1) Replaced all "&"s in the 4th column by "\&".
+#
+#    Henry used "&" to refer to the full matched text and "\N" to refer
+#    to the numbered, parenthesized capture groups.  I now use "\&" and
+#    "\N", respectively.
+#
+#    Test #122 is the character 'a' enclosed in 10 sets of nested parentheses.
+#    Henry's rexexp(3) code only allows 9 capture groups, \1 through \9, as
+#    did my original REX_UTIL package.  Consequently, the test is flagged as
+#    producing an RE compilation error ('c').  Since REX_UTIL now allows an
+#    unlimited number of capture groups (within reason), I changed the test
+#    to pass instead of reporting an error because the RE failed to fail to
+#    compile.
+#
+#*******************************************************************************
+
+1	abc	abc	y	\&	abc
+2	abc	xbc	n	-	-
+3	abc	axc	n	-	-
+4	abc	abx	n	-	-
+5	abc	xabcy	y	\&	abc
+6	abc	ababc	y	\&	abc
+7	ab*c	abc	y	\&	abc
+8	ab*bc	abc	y	\&	abc
+9	ab*bc	abbc	y	\&	abbc
+10	ab*bc	abbbbc	y	\&	abbbbc
+11	ab+bc	abbc	y	\&	abbc
+12	ab+bc	abc	n	-	-
+13	ab+bc	abq	n	-	-
+14	ab+bc	abbbbc	y	\&	abbbbc
+15	ab?bc	abbc	y	\&	abbc
+16	ab?bc	abc	y	\&	abc
+17	ab?bc	abbbbc	n	-	-
+18	ab?c	abc	y	\&	abc
+19	^abc$	abc	y	\&	abc
+20	^abc$	abcc	n	-	-
+21	^abc	abcc	y	\&	abc
+22	^abc$	aabc	n	-	-
+23	abc$	aabc	y	\&	abc
+24	^	abc	y	\&		! 5th field is ""
+25	$	abc	y	\&		! 5th field is ""
+26	a.c	abc	y	\&	abc
+27	a.c	axc	y	\&	axc
+28	a.*c	axyzc	y	\&	axyzc
+29	a.*c	axyzd	n	-	-
+30	a[bc]d	abc	n	-	-
+31	a[bc]d	abd	y	\&	abd
+32	a[b-d]e	abd	n	-	-
+33	a[b-d]e	ace	y	\&	ace
+34	a[b-d]	aac	y	\&	ac
+35	a[-b]	a-	y	\&	a-
+36	a[b-]	a-	y	\&	a-
+37	[k]	ab	n	-	-
+38	a[b-a]	-	c	-	-
+39	a[]b	-	c	-	-
+40	a[	-	c	-	-
+41	a]	a]	y	\&	a]
+42	a[]]b	a]b	y	\&	a]b
+43	a[^bc]d	aed	y	\&	aed
+44	a[^bc]d	abd	n	-	-
+45	a[^-b]c	adc	y	\&	adc
+46	a[^-b]c	a-c	n	-	-
+47	a[^]b]c	a]c	n	-	-
+48	a[^]b]c	adc	y	\&	adc
+49	ab|cd	abc	y	\&	ab
+50	ab|cd	abcd	y	\&	ab
+51	()ef	def	y	\&-\1	ef-
+52	()*	-	c	-	-
+53	*a	-	c	-	-
+54	^*	-	c	-	-
+55	$*	-	c	-	-
+56	(*)b	-	c	-	-
+57	$b	b	n	-	-
+58	a\	-	c	-	-
+59	a\(b	a(b	y	\&-\1	a(b-
+60	a\(*b	ab	y	\&	ab
+61	a\(*b	a((b	y	\&	a((b
+62	a\\b	a\b	y	\&	a\b
+63	abc)	-	c	-	-
+64	(abc	-	c	-	-
+65	((a))	abc	y	\&-\1-\2	a-a-a
+66	(a)b(c)	abc	y	\&-\1-\2	abc-a-c
+67	a+b+c	aabbabc	y	\&	abc
+68	a**	-	c	-	-
+69	a*?	-	c	-	-
+70	(a*)*	-	c	-	-
+71	(a*)+	-	c	-	-
+72	(a|)*	-	c	-	-
+73	(a*|b)*	-	c	-	-
+74	(a+|b)*	ab	y	\&-\1	ab-b
+75	(a+|b)+	ab	y	\&-\1	ab-b
+76	(a+|b)?	ab	y	\&-\1	a-a
+77	[^ab]*	cde	y	\&	cde
+78	(^)*	-	c	-	-
+79	(ab|)*	-	c	-	-
+80	)(	-	c	-	-
+81		abc	y	\&		! 1st and 5th fields are ""
+82	abc		n	-	-
+83	a*		y	\&		! 2nd and 5th fields are ""
+84	abcd	abcd	y	\&-&-\\\&	abcd-&-\abcd
+85	a(bc)d	abcd	y	\1-\\1-\\\1	bc-\1-\bc
+86	([abc])*d	abbbcd	y	\&-\1	abbbcd-c
+87	([abc])*bcd	abcd	y	\&-\1	abcd-a
+88	a|b|c|d|e	e	y	\&	e
+89	(a|b|c|d|e)f	ef	y	\&-\1	ef-e
+90	((a*|b))*	-	c	-	-
+91	abcd*efg	abcdefg	y	\&	abcdefg
+92	ab*	xabyabbbz	y	\&	ab
+93	ab*	xayabbbz	y	\&	a
+94	(ab|cd)e	abcde	y	\&-\1	cde-cd
+95	[abhgefdc]ij	hij	y	\&	hij
+96	^(ab|cd)e	abcde	n	x\1y	xy
+97	(abc|)ef	abcdef	y	\&-\1	ef-
+98	(a|b)c*d	abcd	y	\&-\1	bcd-b
+99	(ab|ab*)bc	abc	y	\&-\1	abc-a
+100	a([bc]*)c*	abc	y	\&-\1	abc-bc
+101	a([bc]*)(c*d)	abcd	y	\&-\1-\2	abcd-bc-d
+102	a([bc]+)(c*d)	abcd	y	\&-\1-\2	abcd-bc-d
+103	a([bc]*)(c+d)	abcd	y	\&-\1-\2	abcd-b-cd
+104	a[bcd]*dcdcde	adcdcde	y	\&	adcdcde
+105	a[bcd]+dcdcde	adcdcde	n	-	-
+106	(ab|a)b*c	abc	y	\&-\1	abc-ab
+107	((a)(b)c)(d)	abcd	y	\1-\2-\3-\4	abc-a-b-d
+108	[ -~]*	abc	y	\&	abc
+109	[ -~ -~]*	abc	y	\&	abc
+110	[ -~ -~ -~]*	abc	y	\&	abc
+111	[ -~ -~ -~ -~]*	abc	y	\&	abc
+112	[ -~ -~ -~ -~ -~]*	abc	y	\&	abc
+113	[ -~ -~ -~ -~ -~ -~]*	abc	y	\&	abc
+114	[ -~ -~ -~ -~ -~ -~ -~]*	abc	y	\&	abc
+115	[a-zA-Z_][a-zA-Z0-9_]*	alpha	y	\&	alpha
+116	^a(bc+|b[eh])g|.h$	abh	y	\&-\1	bh-
+117	(bc+d$|ef*g.|h?i(j|k))	effgz	y	\&-\1-\2	effgz-effgz-
+118	(bc+d$|ef*g.|h?i(j|k))	ij	y	\&-\1-\2	ij-ij-j
+119	(bc+d$|ef*g.|h?i(j|k))	effg	n	-	-
+120	(bc+d$|ef*g.|h?i(j|k))	bcdd	n	-	-
+121	(bc+d$|ef*g.|h?i(j|k))	reffgz	y	\&-\1-\2	effgz-effgz-
+122	((((((((((a))))))))))	b	n	-	-
+123	(((((((((a)))))))))	a	y	\&	a
+124	multiple words of text	uh-uh	n	-	-
+125	multiple words	multiple words, yeah	y	\&	multiple words
+126	(.*)c(.*)	abcde	y	\&-\1-\2	abcde-ab-de
+127	\((.*), (.*)\)	(a, b)	y	(\2, \1)	(b, a)
+
+#*******************************************************************************
+#
+#    Henry Spencer's Original Test File
+#
+#    Remove the "#<test#>\t" in column 1 of each line to get the original file.
+#    (As noted at the beginning of this file, I added the test number field to
+#    make it easier to correlate my modified tests with the original tests.)
+#
+#*******************************************************************************
+#
+#1	abc	abc	y	&	abc
+#2	abc	xbc	n	-	-
+#3	abc	axc	n	-	-
+#4	abc	abx	n	-	-
+#5	abc	xabcy	y	&	abc
+#6	abc	ababc	y	&	abc
+#7	ab*c	abc	y	&	abc
+#8	ab*bc	abc	y	&	abc
+#9	ab*bc	abbc	y	&	abbc
+#10	ab*bc	abbbbc	y	&	abbbbc
+#11	ab+bc	abbc	y	&	abbc
+#12	ab+bc	abc	n	-	-
+#13	ab+bc	abq	n	-	-
+#14	ab+bc	abbbbc	y	&	abbbbc
+#15	ab?bc	abbc	y	&	abbc
+#16	ab?bc	abc	y	&	abc
+#17	ab?bc	abbbbc	n	-	-
+#18	ab?c	abc	y	&	abc
+#19	^abc$	abc	y	&	abc
+#20	^abc$	abcc	n	-	-
+#21	^abc	abcc	y	&	abc
+#22	^abc$	aabc	n	-	-
+#23	abc$	aabc	y	&	abc
+#24	^	abc	y	&		! 5th field is "".
+#25	$	abc	y	&		! 5th field is "".
+#26	a.c	abc	y	&	abc
+#27	a.c	axc	y	&	axc
+#28	a.*c	axyzc	y	&	axyzc
+#29	a.*c	axyzd	n	-	-
+#30	a[bc]d	abc	n	-	-
+#31	a[bc]d	abd	y	&	abd
+#32	a[b-d]e	abd	n	-	-
+#33	a[b-d]e	ace	y	&	ace
+#34	a[b-d]	aac	y	&	ac
+#35	a[-b]	a-	y	&	a-
+#36	a[b-]	a-	y	&	a-
+#37	[k]	ab	n	-	-
+#38	a[b-a]	-	c	-	-
+#39	a[]b	-	c	-	-
+#40	a[	-	c	-	-
+#41	a]	a]	y	&	a]
+#42	a[]]b	a]b	y	&	a]b
+#43	a[^bc]d	aed	y	&	aed
+#44	a[^bc]d	abd	n	-	-
+#45	a[^-b]c	adc	y	&	adc
+#46	a[^-b]c	a-c	n	-	-
+#47	a[^]b]c	a]c	n	-	-
+#48	a[^]b]c	adc	y	&	adc
+#49	ab|cd	abc	y	&	ab
+#50	ab|cd	abcd	y	&	ab
+#51	()ef	def	y	&-\1	ef-
+#52	()*	-	c	-	-
+#53	*a	-	c	-	-
+#54	^*	-	c	-	-
+#55	$*	-	c	-	-
+#56	(*)b	-	c	-	-
+#57	$b	b	n	-	-
+#58	a\	-	c	-	-
+#59	a\(b	a(b	y	&-\1	a(b-
+#60	a\(*b	ab	y	&	ab
+#61	a\(*b	a((b	y	&	a((b
+#62	a\\b	a\b	y	&	a\b
+#63	abc)	-	c	-	-
+#64	(abc	-	c	-	-
+#65	((a))	abc	y	&-\1-\2	a-a-a
+#66	(a)b(c)	abc	y	&-\1-\2	abc-a-c
+#67	a+b+c	aabbabc	y	&	abc
+#68	a**	-	c	-	-
+#69	a*?	-	c	-	-
+#70	(a*)*	-	c	-	-
+#71	(a*)+	-	c	-	-
+#72	(a|)*	-	c	-	-
+#73	(a*|b)*	-	c	-	-
+#74	(a+|b)*	ab	y	&-\1	ab-b
+#75	(a+|b)+	ab	y	&-\1	ab-b
+#76	(a+|b)?	ab	y	&-\1	a-a
+#77	[^ab]*	cde	y	&	cde
+#78	(^)*	-	c	-	-
+#79	(ab|)*	-	c	-	-
+#80	)(	-	c	-	-
+#81		abc	y	&	! 1st and 5th fields are "".
+#82	abc		n	-	-
+#83	a*		y	&		! 2nd and 5th fields are "".
+#84	abcd	abcd	y	&-\&-\\&	abcd-&-\abcd
+#85	a(bc)d	abcd	y	\1-\\1-\\\1	bc-\1-\bc
+#86	([abc])*d	abbbcd	y	&-\1	abbbcd-c
+#87	([abc])*bcd	abcd	y	&-\1	abcd-a
+#88	a|b|c|d|e	e	y	&	e
+#89	(a|b|c|d|e)f	ef	y	&-\1	ef-e
+#90	((a*|b))*	-	c	-	-
+#91	abcd*efg	abcdefg	y	&	abcdefg
+#92	ab*	xabyabbbz	y	&	ab
+#93	ab*	xayabbbz	y	&	a
+#94	(ab|cd)e	abcde	y	&-\1	cde-cd
+#95	[abhgefdc]ij	hij	y	&	hij
+#96	^(ab|cd)e	abcde	n	x\1y	xy
+#97	(abc|)ef	abcdef	y	&-\1	ef-
+#98	(a|b)c*d	abcd	y	&-\1	bcd-b
+#99	(ab|ab*)bc	abc	y	&-\1	abc-a
+#100	a([bc]*)c*	abc	y	&-\1	abc-bc
+#101	a([bc]*)(c*d)	abcd	y	&-\1-\2	abcd-bc-d
+#102	a([bc]+)(c*d)	abcd	y	&-\1-\2	abcd-bc-d
+#103	a([bc]*)(c+d)	abcd	y	&-\1-\2	abcd-b-cd
+#104	a[bcd]*dcdcde	adcdcde	y	&	adcdcde
+#105	a[bcd]+dcdcde	adcdcde	n	-	-
+#106	(ab|a)b*c	abc	y	&-\1	abc-ab
+#107	((a)(b)c)(d)	abcd	y	\1-\2-\3-\4	abc-a-b-d
+#108	[ -~]*	abc	y	&	abc
+#109	[ -~ -~]*	abc	y	&	abc
+#110	[ -~ -~ -~]*	abc	y	&	abc
+#111	[ -~ -~ -~ -~]*	abc	y	&	abc
+#112	[ -~ -~ -~ -~ -~]*	abc	y	&	abc
+#113	[ -~ -~ -~ -~ -~ -~]*	abc	y	&	abc
+#114	[ -~ -~ -~ -~ -~ -~ -~]*	abc	y	&	abc
+#115	[a-zA-Z_][a-zA-Z0-9_]*	alpha	y	&	alpha
+#116	^a(bc+|b[eh])g|.h$	abh	y	&-\1	bh-
+#117	(bc+d$|ef*g.|h?i(j|k))	effgz	y	&-\1-\2	effgz-effgz-
+#118	(bc+d$|ef*g.|h?i(j|k))	ij	y	&-\1-\2	ij-ij-j
+#119	(bc+d$|ef*g.|h?i(j|k))	effg	n	-	-
+#120	(bc+d$|ef*g.|h?i(j|k))	bcdd	n	-	-
+#121	(bc+d$|ef*g.|h?i(j|k))	reffgz	y	&-\1-\2	effgz-effgz-
+#122	((((((((((a))))))))))	-	c	-	-
+#123	(((((((((a)))))))))	a	y	&	a
+#124	multiple words of text	uh-uh	n	-	-
+#125	multiple words	multiple words, yeah	y	&	multiple words
+#126	(.*)c(.*)	abcde	y	&-\1-\2	abcde-ab-de
+#127	\((.*), (.*)\)	(a, b)	y	(\2, \1)	(b, a)

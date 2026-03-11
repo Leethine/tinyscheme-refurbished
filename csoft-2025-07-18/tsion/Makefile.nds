@@ -1,0 +1,112 @@
+# $Id: Makefile.nds,v 1.2 2016/03/13 01:30:58 alex Exp alex $
+#
+
+PROGRAMS = tsion tsiond
+
+LIBRARY = libtsion
+
+SRCS =	\
+	funcs_drs.c \
+	funcs_iox.c \
+	funcs_lfn.c \
+	funcs_misc.c \
+	funcs_net.c \
+	funcs_rex.c \
+	funcs_skt.c \
+	funcs_tcp.c \
+	gc_util.c \
+	opaque.c \
+	plist_util.c \
+	scm_util.c
+
+OBJS = $(SRCS:.c=.o)
+
+#*******************************************************************************
+#    Define the ARM-specific compilation tools to be used.  (Most NDS
+#    developers include devkitPro's "base_rules" and "ds_rules" for these
+#    definitions and for the suffix rules, but these files were written
+#    without following the conventions used in Make's implicit rules.
+#    The implicit rules work just fine for C and C++ files.)
+#PREFIX	=	arm-eabi-
+PREFIX	=	arm-none-eabi-
+AR	=	$(PREFIX)ar
+CC	=	$(PREFIX)gcc
+LD	=	$(PREFIX)gcc
+OBJCOPY	=	$(PREFIX)objcopy
+RANLIB	=	$(PREFIX)ranlib
+#*******************************************************************************
+
+ROOT = ..
+
+ARCH = nds
+INSTALL_DIR ?= $(HOME)/local/bin/$(ARCH)
+
+TINYSCHEME_SRC =	$(ROOT)/tinyscheme
+TINYSCHEME_OBJ =	$(ROOT)/tinyscheme
+
+CPPFLAGS := \
+	-DUSE_CHAR_CLASSIFIERS=1 \
+	-DUSE_DL=0 -DUSE_MATH=1 \
+	-UUSE_SCHEME_STACK -DUSE_STRING_PORTS=1 \
+	-DNDS \
+	-DARM9 \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(TINYSCHEME_SRC) \
+	-I$(DEVKITPRO)/libnds/include
+
+CFLAGS := \
+	-g -Wall -O \
+	-ffast-math -fomit-frame-pointer \
+	-march=armv5te -mtune=arm946e-s \
+	-mthumb -mthumb-interwork
+
+LDFLAGS := \
+	-specs=ds_arm9.specs \
+	-mthumb -mthumb-interwork
+
+LDLIBS := \
+	-L. -ltsion \
+	-L$(ROOT)/libgpl -lgpl \
+	-L$(TINYSCHEME_OBJ) -ltinyscheme \
+	-L$(DEVKITPRO)/libnds/lib -ldswifi9 -lfat -lnds9 \
+	-lm
+
+ARFLAGS = rv
+CP = cp -p
+
+all::	$(LIBRARY).a $(PROGRAMS:=.nds)
+
+$(LIBRARY).a: $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+#*******************************************************************************
+#
+#    For the NDS console, a program's main() function is actually in
+#    libgpl/StdIONDS.c.  StdIONDS.c's main() needs to call the program's
+#    main() function.  To accomplish this, "main" is changed to the program's
+#    name (by the C Preprocessor) in the program's C source file and that name
+#    is compiled into StdIONDS.c using a C Preprocessor symbol, "PROGRAM".
+#
+#    For example, program TSION's source file, "tsion.c", is compiled with a
+#    "-Dmain=tsion" command line option.  StdIONDS.c is then compiled with a
+#    "-DPROGRAM=tsion" option.  As a result, main() in StdIONDS.c will call
+#    tsion() in tsion.c.
+#
+#*******************************************************************************
+
+%.nds: %.c
+	$(COMPILE.c) -Dmain=$(@:.nds=) -o $(@:.nds=).o $<
+	$(COMPILE.c) -DPROGRAM=$(@:.nds=) -DSPROGRAM=\"$(@:.nds=)\" -o StdIONDS.o $(ROOT)/libgpl/StdIONDS.c
+	$(LD) $(LDFLAGS) -o $(@:.nds=).elf StdIONDS.o $(@:.nds=).o $(LDLIBS)
+	$(OBJCOPY) -O binary $(@:.nds=).elf $(@:.nds=).arm9
+	ndstool -c $@ -9 $(@:.nds=).arm9 $($*_ICON_OPTION)
+	-$(RM) $(@:.nds=).o $(@:.nds=).elf $(@:.nds=).arm9
+
+clean::
+	-$(RM) *.o $(LIBRARY).a $(PROGRAMS:=.nds) *.arm9 *.elf
+
+install:
+	$(CP) $(PROGRAMS:=.nds) $(INSTALL_DIR)

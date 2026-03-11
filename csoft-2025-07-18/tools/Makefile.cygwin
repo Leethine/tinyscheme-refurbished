@@ -1,0 +1,30 @@
+# $Id: Makefile.cygwin,v 1.3 2019/05/31 12:37:25 alex Exp alex $
+#
+
+PROGRAMS = \
+	chafn colior cvtdec dump frize frob \
+	gcd gflow gqtest hls pjoin primal primate rdate \
+	scanet sing squint strip8 subtle tag311 talknet trex wbc
+
+ROOT = ..
+
+INSTALL_BIN_DIR = $(HOME)/local/bin/$(ARCH)
+
+CFLAGS = -g -O -Wall
+CPPFLAGS = \
+	-I. \
+	-I$(ROOT)/include
+LDFLAGS = -g
+# TI-RPC library needed by later Cygwin versions for XDR.
+LDLIBS = \
+	$(ROOT)/libgpl/libgpl.a \
+	-ltirpc
+
+all::	$(PROGRAMS)
+
+clean::
+	-$(RM) $(PROGRAMS)
+	-$(RM) *.o
+
+install:
+	cp $(PROGRAMS) $(INSTALL_BIN_DIR)

@@ -1,0 +1,23 @@
+/* $Id: math.h,v 1.1 2004/05/24 19:33:20 alex Exp $ */
+/*******************************************************************************
+
+    math.h
+
+    Standard C Library Mathematical Functions.
+
+*******************************************************************************/
+
+#ifndef  PALM_MATH_H		/* Has the file been INCLUDE'd already? */
+#define  PALM_MATH_H  yes
+
+
+#ifndef _332_ERRNO_H
+#    define  _332_ERRNO_H		/* Skip GCC's "errno.h" header. */
+#endif
+#include  <Unix/sys_socket.h>		/* Palm SDK header for "errno". */
+#define  int  long			/* 32-bit integers. */
+#include  <math-68881.h>		/* GCC mathematical header. */
+#undef  int
+
+
+#endif				/* If this file was not INCLUDE'd previously. */

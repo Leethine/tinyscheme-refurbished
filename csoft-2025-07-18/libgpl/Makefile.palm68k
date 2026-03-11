@@ -1,0 +1,92 @@
+# $Id: Makefile.palm68k,v 1.4 2019/05/30 02:04:33 alex Exp alex $
+#
+
+LIBRARY = libgpl.a
+
+SRCS =	\
+	StdIOPalm.c \
+	SioMain.c \
+	aperror.c \
+	bio_util.c \
+	bit_util.c \
+	bmw_util.c \
+	coli_util.c \
+	comx_util.c \
+	cosn_util.c \
+	crlf_util.c \
+	damx_util.c \
+	ddmx_util.c \
+	f1750a_util.c \
+	ffs.c \
+	fnm_util.c \
+	get_util.c \
+	gimx_util.c \
+	gq_util.c \
+	gsc_util.c \
+	hash_util.c \
+	id3_frame.c \
+	id3_tag.c \
+	id3_util.c \
+	id3_value.c \
+	ieee_util.c \
+	iiop_util.c \
+	ins_util.c \
+	iox_util.c \
+	lfn_util.c \
+	list_util.c \
+	log_util.c \
+	meo_util.c \
+	nbr_util.c \
+	nbr_util_primes.c \
+	nbr_util_roots.c \
+	net_util.c \
+	nft_util.c \
+	nnl_util.c \
+	nvl_util.c \
+	nvp_util.c \
+	opt_util.c \
+	port_util.c \
+	rex_internals.c \
+	rex_util.c \
+	rex_util_y.c \
+	sdx_util.c \
+	skt_util.c \
+	srt_util.c \
+	std_util.c \
+	sto_util.c \
+	str_util.c \
+	strerror.c \
+	tcp_util.c \
+	tpl_util.c \
+	tv_util.c \
+	udp_util.c \
+	utf_util.c \
+	vim_util.c \
+	vtmx_util.c \
+	wcs_util.c \
+	xdr_util.c \
+	xnet_util.c
+
+#*******************************************************************************
+#    Include the "palmos-prc-make-setup.txt" file to setup the common
+#    definitions and rules for building PalmOS libraries and application
+#    using the PRC-TOOLS build environment.
+#*******************************************************************************
+
+ROOT = ..
+include $(ROOT)/include/palmos-prc-make-setup.txt
+
+#*******************************************************************************
+
+BSD_XDR = $(ROOT)/bsd-xdr
+
+CFLAGS += -g -O -Wall
+CPPFLAGS += \
+	-DABBREVIATED_CODESETID_LIST=1 \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(BSD_XDR) \
+	-I$(ROOT)/include/palmos
+
+# Disable the implicit rule for YACC files.
+%.c: %.y

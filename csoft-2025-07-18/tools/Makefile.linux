@@ -1,0 +1,156 @@
+# $Id: Makefile.linux,v 1.7 2022/06/28 17:06:08 alex Exp alex $
+#
+
+PROGRAMS = \
+	chafn colior cvtdec dump frize frob \
+	gcd gflow gqtest hls pjoin primal primate rdate \
+	scanet sing squint strip8 subtle tag311 talknet trex wbc
+
+ROOT = ..
+
+INSTALL_BIN_DIR ?= $(HOME)/local/bin/$(ARCH)
+
+#CFLAGS = -g -O -Wall -pedantic
+CFLAGS = -g -O0 -Wall -pedantic
+CPPFLAGS = \
+	-DHAVE___INT128=1 \
+	-I. \
+	-I$(ROOT)/include
+
+LDFLAGS = \
+	-L$(ROOT)/libgpl \
+	-g
+LDLIBS = -lgpl -lm
+
+# Add TI-RPC headers and library if required (specifically for TALKNET).
+include $(ROOT)/include/tirpc-make-h-lib.txt
+
+#*******************************************************************************
+#
+#    Compile and link all of the programs.
+#
+#*******************************************************************************
+
+all::	$(PROGRAMS)
+
+#*******************************************************************************
+#
+#    Command:
+#
+#        % make vcxproj
+#
+#    Generate all the Visual Studio "<program>.vcxproj" files from the
+#    template.  The project files are identical except for (i) the project
+#    GUID and (ii) the RCS ID tag.  The template file can be updated with
+#    the latest changes for building with Visual Studio and the project
+#    files are easily regenerated.
+#
+#    A mapping of project names to GUIDs is found in
+#    "$(ROOT)/include/vcxproj_guid_map.txt".  A program's GUID is
+#    substituted in the template file and the result is written to
+#    an intermediate file, "<program>.vcxproj.new".
+#
+#    The RCS ID tags are taken from the existing ".vcxproj" files.
+#    A program's project file is *copied* to "<program>.vcxproj.bak".
+#    The RCS ID is extracted from the ".bak" file and substituted in
+#    the ".new" intermediate file; the result is written back to the
+#    original "<program>.vcxproj" flie.
+#
+#*******************************************************************************
+
+VCXS = $(filter-out cvtdec.vcxproj, $(PROGRAMS:=.vcxproj))
+VCXSNEW = $(VCXS:=.new)
+
+GET_GUID = $(ROOT)/include/vcxproj_guid.sh
+GUID_MAP = $(ROOT)/include/vcxproj_guid_map.txt
+
+vcxproj: $(VCXS)
+
+#    <ProjectGuid>{00000000-0000-0000-0000-000000000000}</ProjectGuid>
+
+PGB=<ProjectGuid>{
+PGE=}</ProjectGuid>
+
+%.vcxproj.new: vcxproj_template_tools.txt
+	@echo $$($(GET_GUID) $* $(GUID_MAP))
+	-$(RM) $@
+	cp $< $@
+	sed -i $@ -e "s=\\($(PGB)\\).*\\($(PGE)\\)=\\1$$($(GET_GUID) $(@:.vcxproj.new=) $(GUID_MAP))\\2="
+
+%.vcxproj: %.vcxproj.new
+	cp --preserve $@ $@.bak
+	sed $< > $@ -e "2c $$(sed -n 2p $@.bak)"
+
+#*******************************************************************************
+#
+#    Command:
+#
+#        % "make rex_henry_spencer_tests.h.new
+#
+#    Generate a header file with each line of Henry Spencer's test suite
+#    converted to a C string.  The generated header has a ".new" extension
+#    and is intended to replace the body of the version-controlled ".h"
+#    file when changes to the test suite are made.
+#
+#    NOTE that the backslashes ('\') MUST be substituted BEFORE the quotation
+#    marks ('"'); the substitution for the quotation mark is \" and those
+#    backslashes are not to be doubled.
+#
+#*******************************************************************************
+
+REX_TESTS = rex_henry_spencer_tests
+
+$(REX_TESTS).h.new:	$(ROOT)/include/$(REX_TESTS).txt
+	$(RM) $@
+	sed	-e 's|\\|\\\\|g'	\
+		-e 's|"|\\"|g'		\
+		-e 's|\t|\\t|g'		\
+		-e 's|\f|\\f|g'		\
+		-e 's|^|    "|'		\
+		-e 's|$$|",|'		\
+		$< > $@
+
+#*******************************************************************************
+#
+#    Command:
+#
+#        % "make chafn_help.h.new
+#
+#    Generate a header file with each line of CHAFN's help text converted
+#    to a C string.  The generated header has a ".new" extension and is
+#    intended to replace the body of the version-controlled ".h" file when
+#    changes to the text are made.
+#
+#*******************************************************************************
+
+CHAFN_HELP = chafn_help
+
+$(CHAFN_HELP).h.new:	$(CHAFN_HELP).txt
+	$(RM) $@
+	sed -f $(ROOT)/include/text_h.sed $(CHAFN_HELP).txt > $@
+
+#*******************************************************************************
+#
+#    Command:
+#
+#        % "make tag311_help.h.new
+#
+#    Generate a header file with each line of TAG311's help text converted
+#    to a C string.  The generated header has a ".new" extension and is
+#    intended to replace the body of the version-controlled ".h" file when
+#    changes to the text are made.
+#
+#*******************************************************************************
+
+TAG311_HELP = tag311_help
+
+$(TAG311_HELP).h.new:	$(TAG311_HELP).txt
+	$(RM) $@
+	sed -f $(ROOT)/include/text_h.sed $(TAG311_HELP).txt > $@
+
+clean::
+	-$(RM) $(PROGRAMS) *.o *.vcxproj.bak $(VCXSNEW)	\
+		$(REX_TESTS).h.new $(CHAFN_HELP).h.new $(TAG311_HELP).h.new
+
+install:
+	cp $(PROGRAMS) $(INSTALL_BIN_DIR)

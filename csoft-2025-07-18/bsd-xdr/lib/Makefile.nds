@@ -1,0 +1,62 @@
+# $Id: Makefile.nds,v 1.1 2019/05/26 04:54:14 alex Exp $
+#
+
+LIBRARY = libxdr
+
+SRCS =	\
+	xdr_array.c \
+	xdr.c \
+	xdr_float.c \
+	xdr_mem.c \
+	xdr_rec.c \
+	xdr_reference.c \
+	xdr_sizeof.c \
+	xdr_stdio.c
+
+#	xdr_private.c \
+
+OBJS = $(SRCS:.c=.o)
+
+ROOT = ../..
+BSD_XDR = $(ROOT)/bsd-xdr
+
+#*******************************************************************************
+#    Define the ARM-specific compilation tools to be used.  (Most NDS
+#    developers include devkitPro's "base_rules" and "ds_rules" for these
+#    definitions and for the suffix rules, but these files were written
+#    without following the conventions used in Make's implicit rules.
+#    The implicit rules work just fine for C and C++ files.)
+PREFIX	=	arm-none-eabi-
+AR	=	$(PREFIX)ar
+CC	=	$(PREFIX)gcc
+RANLIB	=	$(PREFIX)ranlib
+#*******************************************************************************
+
+CPPFLAGS := \
+	-DNDS \
+	-DARM9 \
+	-DAUTHENTICATE=0 \
+	-DNO_SEMUN \
+	-D_XDR_PRIVATE_H \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(BSD_XDR) \
+	-I$(DEVKITPRO)/libnds/include
+
+CFLAGS := \
+	-g -Wall -O2 \
+	-ffast-math -fomit-frame-pointer \
+	-march=armv5te -mtune=arm946e-s \
+	-mthumb -mthumb-interwork
+
+ARFLAGS = rv
+
+all::	$(LIBRARY).a
+
+$(LIBRARY).a: $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+clean::
+	-$(RM) $(OBJS) $(LIBRARY).a

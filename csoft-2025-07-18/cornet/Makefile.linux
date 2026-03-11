@@ -1,0 +1,42 @@
+# $Id: Makefile.linux,v 1.3 2004/01/17 00:59:31 alex Exp alex $
+#
+
+PROGRAM = cornet
+
+SRCS = \
+	cornet.c \
+	command.c \
+	configure.c \
+	link.c \
+	monitor.c \
+	ranging.c \
+	sequence.c \
+	telemetry.c \
+	utility.c
+
+OBJS = $(SRCS:.c=.o)
+
+ROOT = ..
+
+INSTALL_BIN_DIR ?= $(HOME)/local/bin/$(arch)
+
+CFLAGS = -g -O -Wall -pedantic
+CPPFLAGS = \
+	-I. \
+	-I$(ROOT)/include
+
+LDFLAGS = -g -L$(ROOT)/libgpl
+LDLIBS = -lgpl
+
+# Add TI-RPC headers and library if required.
+include $(ROOT)/include/tirpc-make-h-lib.txt
+
+all::	$(PROGRAM)
+
+$(PROGRAM): $(OBJS)
+
+clean::
+	-$(RM) $(OBJS) $(PROGRAM)
+
+install:
+	cp $(PROGRAM) $(INSTALL_BIN_DIR)

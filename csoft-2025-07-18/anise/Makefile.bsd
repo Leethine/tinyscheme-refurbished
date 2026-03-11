@@ -1,0 +1,40 @@
+# $Id$
+#
+
+PROGRAM = anise
+
+SRCS = \
+	anise.c \
+	ftpClient.c \
+	http_util.c \
+	passClient.c \
+	wwwClient.c
+
+OBJS = $(SRCS:.c=.o)
+
+ROOT = ..
+
+INSTALL_BIN_DIR ?= $(HOME)/local/bin/$(arch)
+
+CPPFLAGS = \
+	-I. \
+	-I$(ROOT)/include
+CFLAGS = -g -O -Wall -pedantic $(CPPFLAGS)
+
+LDFLAGS = -g
+LDLIBS = \
+        $(ROOT)/libgpl/libgpl.a \
+        -lm
+
+RM = rm -f
+
+all::	$(PROGRAM)
+
+$(PROGRAM): $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+
+clean::
+	-$(RM) $(OBJS) $(PROGRAM)
+
+install:
+	cp $(PROGRAM) $(INSTALL_BIN_DIR)

@@ -1,0 +1,53 @@
+/* $Id: README_ALEX.txt,v 1.1 2019/01/28 02:10:31 alex Exp alex $ */
+
+                               BSD-XDR-1.0.0
+                               -------------
+
+The original bsd-xdr-1.0.0 can be downloaded from:
+
+    https://github.com/maynardGK/bsd-xdr
+
+which is an export to GitHub from:
+
+    https://code.google.com/archive/p/bsd-xdr/
+
+The code was last updated in 2009.  My CSOFT software used a very
+old version of Sun's XDR code for use on platforms that don't have
+an XDR library.  In January 2019, I discovered that a hardware
+device whose ICD specified xdr_int() for sending and receiving
+32-bit integers, was not compatible with my very old XDR library
+built for the M68K Palm Pilot (16-bit ints).  I had downloaded
+bsd-xdr-1.0.0 from somewhere back in 2015 and I decided to finally
+make use of it, thanks to its inclusion of the newer xdr_intXX_t()
+functions, especially xdr_int32_t().
+
+As I am writing this, I just noticed that the first line on the
+Google Code project page says:
+
+    "bsd-xdr is [a] port of Sun's XDR (RFC 4506) library,
+    mostly for Windows, although it also works on 32- and
+    64-bit linux."
+
+I do need it for Windows, but I also need it for the Palm Pilot,
+the Nintendo DS, and VAX/VMS.  I can test it on the Palm Pilot
+and Nintendo DS, but I don't have access to a VAX (which happily
+used my older XDR library).  Keeping my fingers crossed ...!
+
+
+Alex Measday
+http://www.geonius.com/software/
+calexm5y@gmail.com
+January 2019
+
+********************************************************************************
+
+  - Inserted an RCS header line and a blank line at the beginning of each
+    C and header file that I might need to modify.  I made all the other
+    files read-only, so they will be identical to the files in the original
+    bsd-xdr-1.0.0.
+
+  - Moved the "bsd-xdr/src/msvc/" directory up one level to "bsd-xdr/msvc/".
+    This simplifies the inclusion of the header files; for example:
+
+        #include  <rpc/xdr.h>
+        #include  <msvc/stdint.h>

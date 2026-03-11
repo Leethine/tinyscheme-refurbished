@@ -1,0 +1,42 @@
+# $Id: Makefile.palm68k,v 1.1 2019/01/05 22:13:17 alex Exp alex $
+#
+
+PROGRAM = cornet.prc
+
+SRCS = \
+	command.c \
+	configure.c \
+	link.c \
+	monitor.c \
+	ranging.c \
+	sequence.c \
+	telemetry.c \
+	utility.c
+
+#*******************************************************************************
+#    Include the "palmos-prc-make-setup.txt" file to setup the common
+#    definitions and rules for building PalmOS libraries and application
+#    using the PRC-TOOLS build environment.
+#*******************************************************************************
+
+ROOT = ..
+include $(ROOT)/include/palmos-prc-make-setup.txt
+
+#*******************************************************************************
+
+LIBGPL = $(ROOT)/libgpl
+BSD_XDR = $(ROOT)/bsd-xdr
+LIBXDR = $(BSD_XDR)/lib
+
+LIBS = \
+	$(LIBGPL)/libgpl.a \
+	$(LIBXDR)/libxdr.a
+
+CFLAGS += -g -O -Wall
+CPPFLAGS += \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(BSD_XDR) \
+	-I$(ROOT)/include/palmos
+LDFLAGS += -g
+LDLIBS = $(LIBS) -lNetSocket

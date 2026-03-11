@@ -1,0 +1,18 @@
+/* $Id$ */
+/*******************************************************************************
+
+    stddef.h
+
+    Standard C Definitions.
+
+*******************************************************************************/
+
+#ifndef  PALM_STDDEF_H		/* Has the file been INCLUDE'd already? */
+#define  PALM_STDDEF_H  yes
+
+
+#include  <PalmTypes.h>			/* Palm SDK header. */
+typedef  WChar  wchar_t ;
+
+
+#endif				/* If this file was not INCLUDE'd previously. */

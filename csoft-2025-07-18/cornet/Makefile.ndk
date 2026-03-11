@@ -1,0 +1,72 @@
+# $Id: Makefile.ndk,v 1.2 2023/06/11 05:30:48 alex Exp alex $
+#
+#*******************************************************************************
+#
+#    Makefile for Android NDK
+#
+#    NOTE: This Makefile, directly and indirectly, uses GNU MAKE extensions.
+#    Consequently, use GNU MAKE to run it!  (If GNU MAKE is not available to
+#    you, it would be relatively easy to convert this Makefile and the setup
+#    file to a non-GNU Makefile by manually inserting the setup file.)
+#
+#    This Makefile builds software for an Android target using the Android
+#    Native Development Kit (NDK).  The Makefile initially includes
+#    "../include/android-ndk-make-setup.txt" to setup the MAKE variables
+#    for the NDK tools.  See that file for more detailed information,
+#    including how to configure the build environment for different target
+#    architectures and different Android API levels.
+#
+#    The following key MAKE variables are defined in the setup file:
+#
+#        CC and CFLAGS
+#        LD and LFLAGS
+#        AR and RANLIB
+#
+#    NOTE that, if you need to append arguments to CFLAGS or LFLAGS,
+#    use GNU MAKE's "+=" assignment operator.
+#
+#*******************************************************************************
+
+ROOT ?= ..
+
+ANDROID_NDK_MAKE_SETUP ?= $(ROOT)/include/android-ndk-make-setup.txt
+include $(ANDROID_NDK_MAKE_SETUP)
+
+PROGRAM = cornet
+
+SRCS = \
+	cornet.c \
+	command.c \
+	configure.c \
+	link.c \
+	monitor.c \
+	ranging.c \
+	sequence.c \
+	telemetry.c \
+	utility.c
+
+OBJS = $(SRCS:.c=.o)
+
+ANDROID_NDK_INSTALL_DIR ?= $(HOME)/local/bin/ndk-$(NDK_TARGET_ARCH)
+
+CFLAGS += -g -O -Wall -Wno-long-long
+CPPFLAGS = \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(ROOT)/bsd-xdr
+LDFLAGS += -g \
+	-L$(ROOT)/libgpl \
+	-L$(ROOT)/bsd-xdr/lib
+LDLIBS = -lgpl -lxdr -lm
+RM = rm -f
+
+all::	$(PROGRAM)
+
+$(PROGRAM): $(OBJS)
+
+clean::
+	-$(RM) $(PROGRAM)
+	-$(RM) *.o
+
+install:
+	cp $(PROGRAM) $(ANDROID_NDK_INSTALL_DIR)

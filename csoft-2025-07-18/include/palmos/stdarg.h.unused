@@ -1,0 +1,5 @@
+/* $Id: stdarg.h,v 1.1 2004/05/24 19:33:20 alex Exp alex $ */
+
+/* Redirect to the corresponding PalmOS SDK header. */
+
+#include  <Unix/unix_stdarg.h>		/* Variable-length argument lists. */

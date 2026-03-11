@@ -1,0 +1,294 @@
+# $Id: Makefile.recurse,v 1.1 2021/09/11 02:55:15 alex Exp alex $
+#
+#*******************************************************************************
+#
+#    Recursive Makefile to Build CSOFT Subdirectories
+#    ================================================
+#
+#    This Makefile directs the building of the CSOFT software using GNU
+#    Make in various Unix-like development environments -- I hope!  I've
+#    only tested it in Linux and Cygwin.  Under Linux:
+#
+#      - Building for Linux
+#      - Cross-compiling for Android using Android Native Development Kit
+#      - Cross-compiling for Nintendo DS using devkitARM
+#      - Cross-compiling for PalmOS 68k using prc-tools-remix and PalmOS SDK
+#
+#    Under Cygwin:
+#
+#      - Building for Cygwin and Cygwin64
+#      - Cross-compiling for PalmOS 68k using prc-tools-remix and PalmOS SDK
+#
+#    Building for Various Platforms
+#    ------------------------------
+#
+#    The subdirectories containing the CSOFT software have different Makefiles
+#    for the different target platforms.  For example:
+#
+#        Makefile.android - for cross-compiling Android libraries and
+#            executables.
+#        Makefile.cygwin - for building Cygwin/Cygwin64 libraries and
+#            executables.
+#        Makefile.linux - for building Linux libraries and executables.
+#        Makefile.nds - for cross-compiling Nintendo DS libraries and
+#            executables.
+#        Makefile.palm68k - for cross-compiling PalmOS libraries and
+#            executables.
+#
+#    I used to have other files from Makefile.freebsd to, for Sun workstations,
+#    Makefile.sun, Makefile.os5, Makefile.os9, and Makefile.solaris.  I no
+#    longer have access to these machines or distribution installations,
+#    so I've gradually dropped them.  They were all slight variations of
+#    Makefile.linux anyway at the time I wrote them.  (Or the reverse, since
+#    some of them were in use before Linux came into being.)
+#
+#    To build for CSOFT for a particular target platform, define the shell
+#    environment variable, CSOFT_PLATFORM, with the suffix of the platform's
+#    Makefiles:
+#
+#        setenv CSOFT_PLATFORM android
+#        setenv CSOFT_PLATFORM cygwin
+#        setenv CSOFT_PLATFORM linux	(The default)
+#        setenv CSOFT_PLATFORM nds
+#        setenv CSOFT_PLATFORM palm68k
+#
+#    So if CSOFT_PLATFORM is not defined, the following command line will
+#    build the Linux (i.e., host) version of the software:
+#
+#        % make -f Makefile.recurse
+#
+#    And the following:
+#
+#        % setenv CSOFT_PLATFORM android
+#        % make -f Makefile.recurse
+#
+#    will invoke the Makefile.android build files in the subdirectories
+#    to cross-compile and link the Android libraries and executables.
+#
+#    Subdirectories
+#    --------------
+#
+#    The order in which the subdirectories are built is important, so this
+#    Makefile divides them up among two variables:
+#
+#        GENERIC_SUBDIRS -
+#            bsd-xdr/lib	(Necessary only for platforms that don't
+#				have an XDR library.  Linux has it built
+#				into the C library and Cygwin uses the
+#				Transport-Independent RPC library.)
+#            libgpl		CSOFT's General Purpose Library.
+#
+#        PROJECT_SUBDIRS -	(Programs that require the libraries above.)
+#            tools
+#            anise
+#            ...
+#
+#    If you add subdirectories to these variables, be sure they're built
+#    in the right order if it matters.  (In the GENERIC_SUBDIRS definition
+#    above, either bsd-xdr/lib or libgpl can be built first, since they only
+#    reference static header files.)
+#
+#    Makefile Targets
+#    ----------------
+#
+#    GNU Make makes command-line targets available initially in the
+#    MAKECMDGOALS variable.  As the Makefile is processed, GNU Make
+#    adds prerequisites to the variable.  This Makefile captures the
+#    initial value of MAKECMDGOALS and passes the target(s) to the
+#    Makefiles in the subdirectories.  However, every possible target
+#    must also be defined in this Makefile and redirected to the loop
+#    that traverses the subdirectories.  This Makefile has two targets:
+#
+#        % make -f Makefile.recurse		or
+#        % make -f Makefile.recurse all
+#
+#    and:
+#
+#        % make -f Makefile.recurse clean
+#
+#    IMPORTANT
+#    ---------
+#
+#    This Makefile simply runs the Makefiles in the subdirectories.
+#    Setting up your development environment is another matter,
+#    especially for cross-platform development.  You should study
+#    the platform-specific Makefiles to get an understanding of how
+#    the Makefiles access the header files, libraries, and development
+#    tools for the platform.
+#
+#        URLs for cross-platform toolchains mentioned in this
+#        section:
+#
+#            Android Native Development Kit (NDK)
+#                from https://developer.android.com/ndk
+#
+#            Nintendo DS (NDS) devkitARM
+#                from https://devkitpro.org/
+#                which also has toolchains for other
+#                processors and game systems.
+#
+#            Palm OS prc-tools-remix
+#                from Chuan Ji's GitHub site:
+#                https://github.com/jichu4n/prc-tools-remix (toolchain)
+#                https://github.com/jichu4n/palm-os-sdk (SDKs 1 to 5r4!)
+#
+#    CSOFT's include subdirectory has two, GNU Make-included text files
+#    that describe my Android and PalmOS build environments in detail:
+#
+#        include/android-ndk-make-setup.txt
+#        include/palmos-prc-make-setup.txt
+#
+#    I placed the Android, Nintendo DS, and PalmOS distributions in my
+#    Linux computer's /opt directory.
+#
+#        Android NDK - includes prebuilt libraries and cross-platform
+#            binaries.  The android-ndk-make-setup.txt file makes use of
+#            environment variables or defaults to specify the location
+#            of headers, libraries, and development tools, as well as
+#            other parameters.
+#
+#        NDS devkitARM - also includes prebuilt libraries and binaries.
+#            I haven't gone back and created a Make setup file for it,
+#            so the Makefiles depend on environment variable DEVKITPRO
+#            to point to the root NDS directory, from whence the Makefile
+#            can locate the headers and libraries.  The location of the
+#            development tool binaries ("/opt/devkitPro/devkitARM/bin"
+#            in my case) is added to the shell variable PATH in my
+#            .login file.
+#
+#    The "directories" in /opt are actually symbolic links:
+#
+#        /opt/android-ndk -> /opt/android-ndk-r13b (Release 13b)
+#        /opt/devkitPro -> /opt/devkitARM -> devkitARMr45 (Release 45)
+#
+#    The PalmOS distribution, prc-tools-remix, is source only.  The main
+#    GitHub page has instructions for "Building from source".  I downloaded
+#    the source code in a ZIP file from:
+#
+#               https://github.com/jichu4n/prc-tools-remix
+#
+#    and, having already logged in as root, proceeded to:
+#
+#        % cd /opt
+#        % unzip prc-tools-remix-master.zip
+#            ...
+#            ... source files extracted ...
+#            ...
+#        % mv prc-tools-remix-master prc-tools-remix	(My preference)
+#        % cd /opt/prc-tools-remix
+#        % ./tools/build.sh
+#            ...
+#            ... builds the cross-platform toolchain ...
+#            ...
+#        %
+#
+#    The build produces an /opt/prc-tools-remix/dist directory containing
+#    all the components of the cross-compilation toolchain needed to build
+#    a PalmOS application.  The next step is to build a distribution tarball
+#    that can be installed anywhere:
+#
+#        % cd dist
+#        % tar cvjf ../prc-tools-remix.tar.bz2 *
+#            ...
+#            ... Collects all the files ...
+#            ...
+#        %
+#
+#*******************************************************************************
+#*******************************************************************************
+#
+#    FROM HERE ON OUT, THE DOCUMENTATION IS INCOMPLETE AND KIND OF SCATTERED.
+#
+#*******************************************************************************
+#*******************************************************************************
+#
+#    Prc-tools-remix is half of the PalmOS development environment.  The
+#    other half are the PalmOS Software Development Kits (SDKs).  They're
+#    found in /opt/palmdev; for example:
+#
+#        /opt/palmdev/sdk-3.5
+#        /opt/palmdev/sdk-4
+#        /opt/palmdev/sdk-5r3
+#
+#    Mine date back to 2000-2004 and were probably downloaded directly
+#    and legally from the now-defunct Palm, Inc. back then.  In addition
+#    to prc-tools-remix, Chuan Ji's amazing GitHub site has an archive
+#    of Palm SDK versions 1 to 5r4 plus One.  Recently, I downloaded the
+#    ZIP file of this archive from:
+#
+#                 https://github.com/jichu4n/palm-os-sdk
+#
+#    and stored it in /opt/palmdev:
+#
+#        % cd /opt
+#        % unzip palm-os-sdk-master.zip
+#            ...
+#        % mv palm-os-sdk-master palmdev
+#
+#    Two final steps before your development environment is complete.
+#    First, install the binary distribution from the tarball created
+#    earlier into a directory of your choosing.  NOTE that the tarball
+#    has a top-level, relative directory "usr/"; I would not extract
+#    the tarball in the root directory, "/".  I installed my distribution
+#    into /usr/local as follows:
+#
+#        % cd /usr/local
+#        % tar xvjf prc-tools-remix.tar.bz2
+#            ...
+#        % cd usr		-- One level too low.
+#        % cp -a * ..		-- Copy all one level up to /usr/local.
+#        % cd ..
+#        % rm -fR usr
+#
+#    I then add /usr/local/bin to my PATH environment variable.  Second,
+#*******************************************************************************
+#
+#        % cd /opt
+#        % unzip palm-os-sdk-master.zip
+#            ...
+#        % mv palm-os-sdk-master palmdev
+#
+#
+#        % palmdev-prep -d 3.5
+#
+#*******************************************************************************
+
+
+CMD_LINE_TARGETS := $(MAKECMDGOALS)
+
+CSOFT_PLATFORM ?= linux
+export CSOFT_PLATFORM
+
+ifeq ($(CSOFT_PLATFORM), android)
+    GENERIC_SUBDIRS := bsd-xdr/lib
+else ifeq ($(CSOFT_PLATFORM), nds)
+    GENERIC_SUBDIRS := bsd-xdr/lib
+else ifeq ($(CSOFT_PLATFORM), palm68k)
+    GENERIC_SUBDIRS := bsd-xdr/lib
+else
+    GENERIC_SUBDIRS =
+endif
+
+GENERIC_SUBDIRS += \
+	libgpl
+
+PROJECT_SUBDIRS := \
+	tools \
+	anise \
+	finc \
+
+#	tsion
+
+SUBDIRS = $(GENERIC_SUBDIRS) $(PROJECT_SUBDIRS)
+
+all::	children self
+
+children:
+	for subdir in $(SUBDIRS) ; do  \
+		(cd $$subdir && $(MAKE) -f Makefile.$(CSOFT_PLATFORM) $(CMD_LINE_TARGETS)) ;  \
+	done
+
+self:
+
+
+clean:	children self

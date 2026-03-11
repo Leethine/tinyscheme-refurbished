@@ -1,0 +1,180 @@
+/* $Id: StdIONDS.c,v 1.6 2021/09/20 03:14:38 alex Exp alex $ */
+/*******************************************************************************
+
+    StdIONDS.c - initializes various NDS subsystems, queries the user for
+        command-line options, and calls the actual main program.
+
+*******************************************************************************/
+
+
+#include  <stdio.h>			/* Standard I/O definitions. */
+#include  <stdlib.h>			/* Standard C Library definitions. */
+#include  <string.h>			/* Standard C string functions. */
+#include  <nds.h>			/* NDS definitions. */
+#include  <fat.h>			/* DS file system functions. */
+#ifdef DSWIFI
+#    include  <dswifi9.h>		/* DS WiFi functions. */
+#endif
+#include  "opt_util.h"			/* Option scanning definitions. */
+#include  "str_util.h"			/* String manipulation functions. */
+
+
+extern  int  PROGRAM (int argc,		/* The actual program to be called. */
+                      char **argv) ;
+
+
+#define  MAXINPUT  1024
+
+
+/*******************************************************************************
+    exit(3) - replaces the C Library's exit(3) function.  When programs
+        of mine called the C Library's exit(3) function, I would get a
+        fraction-of-a-second glimpse of the standard output screen and
+        control would immediately return straight to the homebrew card's
+        menu/launcher.  By substituting this exit() function for the
+        library's function, the user will be prompted to press a button
+        to exit the program, thus allowing the user to peruse the output
+        screen for results or errors before finally ending the program.
+        I should probably make this an option in the ".conf" file since
+        I only need to see the screen output for some programs, not all.
+*******************************************************************************/
+
+void  exit (int  status)
+{
+
+    iprintf ("Tap key to exit ...\n") ;
+
+    do {
+        scanKeys () ;
+    } while (!keysDown ()) ;
+
+    _Exit (status) ;
+
+}
+
+
+/*******************************************************************************
+    keyPressed() - echo the character that was typed.
+*******************************************************************************/
+
+static  void  keyPressed (int  c)
+{
+    if (c > 0)  iprintf ("%c", c) ;
+}
+
+/*******************************************************************************
+    The main program.
+*******************************************************************************/
+
+int  main (void)
+
+{    /* Local variables. */
+    char  **argv, *buffer, *commandLine, *keyword, *s ;
+    FILE  *file ;
+    int  argc ;
+    Keyboard  *kb ;
+    PrintConsole  bottomScreen, topScreen ;
+    size_t  length ;
+
+
+
+/* Initialize the screen for printing. */
+
+#ifdef BOTTOM_SCREEN
+    consoleDemoInit () ;
+#else
+    videoSetMode (MODE_0_2D) ;
+    videoSetModeSub (MODE_0_2D) ;
+
+    vramSetBankA (VRAM_A_MAIN_BG) ;
+    vramSetBankC (VRAM_C_SUB_BG) ;
+
+#    ifdef DEVKITPRO_R24
+        topScreen = *consoleInit(0, 3,BgType_Text4bpp, BgSize_T_256x256, 31, 0, true);
+        bottomScreen = *consoleInit(0, 3,BgType_Text4bpp, BgSize_T_256x256, 31, 0, false);
+#    else
+        consoleInit (&topScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0,
+                     true, true) ;
+        consoleInit (&bottomScreen, 3,BgType_Text4bpp, BgSize_T_256x256, 31, 0,
+                     false, true) ;
+#    endif
+
+    consoleSelect (&topScreen) ;
+#endif
+    iprintf ("Console initialized ...\n") ;
+
+/* Initialize the keyboard for typing. */
+
+#ifdef DEVKITPRO_R24
+    kb = keyboardGetDefault () ;
+    kb->OnKeyPressed = keyPressed ;
+    keyboardInit (kb) ;
+#else
+    kb = keyboardDemoInit () ;
+    kb->OnKeyPressed = keyPressed ;
+#endif
+    iprintf ("Keyboard initialized ...\n") ;
+
+/* Initialize the file system utilities. */
+
+    if (fatInitDefault ())
+        iprintf ("FAT library initialized ...\n") ;
+    else
+        iprintf ("Error initializing the file system.\n") ;
+
+/* If internet access is required, then initialize the DS WiFi utilities
+   and connect to the wireless access point. */
+
+#ifdef DSWIFI
+    iprintf ("Connecting via WFC data ...\n") ;
+    if (Wifi_InitDefault (WFC_CONNECT))
+        iprintf ("... connected.\n") ;
+    else
+        iprintf ("... failed to connect.\n") ;
+#endif
+
+/* Open the program's optional configuration file. */
+
+    commandLine = NULL ;
+    buffer = malloc (MAXINPUT) ;
+    sprintf (buffer, "/etc/%s.conf", SPROGRAM) ;
+    file = fopen (buffer, "r") ;
+    while ((file != NULL) && (fgets (buffer, MAXINPUT, file) != NULL)) {
+        length = strTrim (buffer, -1) ;
+        keyword = strtok (buffer, " \t\n\r") ;
+        if ((keyword == NULL) || (*keyword == '#'))  continue ;
+        if (strcmp (keyword, "putenv") == 0) {
+            s = strtok (NULL, " \t\n\r") ;
+            if (s != NULL)  putenv (s) ;
+        } else if (strcmp (keyword, SPROGRAM) == 0) {
+            s = keyword + strlen (keyword) ;
+            if (s != (buffer + length))  s++ ;	/* Arguments after keyword? */
+            commandLine = strdup (s) ;
+        }
+    }
+    if (file != NULL)  fclose (file) ;
+    free (buffer) ;
+
+/* Ask the user to type in the command-line arguments on the keyboard. */
+
+    if (commandLine == NULL) {
+        commandLine = malloc (MAXINPUT) ;
+        iprintf ("\nEnter the command-line arguments: \n") ;
+        gets (commandLine) ;
+    }
+
+/* Parse the command-line arguments into an argv[] array. */
+
+    if (opt_create_argv (SPROGRAM, commandLine, &argc, &argv))
+        iprintf ("Error parsing the command line.\n") ;
+
+    swiWaitForVBlank () ;
+
+/* Call the actual program. */
+
+    iprintf ("Calling %s ...\n", SPROGRAM) ;
+    PROGRAM (argc, argv) ;
+
+    exit (0) ;
+
+}

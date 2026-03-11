@@ -1,0 +1,36 @@
+# $Id: Makefile.cygwin,v 1.1 2012/05/16 09:52:15 alex Exp alex $
+#
+
+PROGRAM = anise
+
+SRCS = \
+	anise.c \
+	ftpClient.c \
+	http_util.c \
+	passClient.c \
+	wwwClient.c
+
+OBJS = $(SRCS:.c=.o)
+
+ROOT = ..
+
+INSTALL_BIN_DIR ?= $(HOME)/local/bin/$(arch)
+
+CFLAGS = -g -Wall
+CPPFLAGS = \
+        -I. \
+        -I$(ROOT)/include
+LDFLAGS = -g
+LDLIBS = \
+        $(ROOT)/libgpl/libgpl.a \
+        -lm
+
+all::	$(PROGRAM)
+
+$(PROGRAM): $(OBJS)
+
+clean::
+	-$(RM) $(OBJS) $(PROGRAM)
+
+install:
+	cp $(PROGRAM) $(INSTALL_BIN_DIR)

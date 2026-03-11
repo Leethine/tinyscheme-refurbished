@@ -1,0 +1,228 @@
+# $Id: android-ndk-gcc-make-setup.txt,v 1.3 2023/06/02 12:33:27 alex Exp alex $
+#
+#*******************************************************************************
+#
+#    Setup Android NDK-Specific MAKE Variables (GCC-Based Toolchains)
+#
+#
+#        .----------------------------------------------------------.
+#        |                                                          |
+#        |    The earlier versions of the Android NDK used GNU's    |
+#        |    GCC-based cross-compilation tool suite, only later    |
+#        |    transitioning to the LLVM-based tool suite.  The      |
+#        |    last version of the NDK to support GCC was "r15c".    |
+#        |                                                          |
+#        |    In other words, DON'T USE THIS SETUP FILE as it       |
+#        |    will not work with NDK versions later than "r15c".    |
+#        |    Use the LLVM-based "android-ndk-make-setup.txt"       |
+#        |    instead.                                              |
+#        |                                                          |
+#        |    My software's Makefiles can be used with either       !
+#        |    setup file.  Since both this GCC-based file and       |
+#        |    the LLVM-based setup file define the same output      |
+#        |    MAKE variables, the difference is invisible to my     |
+#        |    Makefiles.                                            |
+#        |                                                          |
+#        |    To use this setup file, define environment variable   |
+#        |    ANDROID_NDK_MAKE_SETUP with the full path of this     |
+#        |    file.  (Some of my Makefiles are at different         |
+#        |    subdirectory depths, so a relative path would not     |
+#        |    work.)  There may be a difference in other            |
+#        |    pre-defined environment variables if you choose to    |
+#        |    override the default values of the input parameters;  |
+#        |    see the "Shell Environment Variables" section at the  |
+#        |    bottom of this prologue.                              |
+#        |                                                          |
+#        `----------------------------------------------------------'
+#
+#
+#    This file sets up MAKE variables used to access and invoke the
+#    desired Android version and target CPU header files, libraries,
+#    and cross-compilation tools.  The file should be "include"d at
+#    the beginning of an actual Makefile:
+#
+#        include ../include/android-ndk-make-setup.txt
+#
+#    The setup performed here makes use of GNUMAKE extensions, so
+#    your Makefiles should be run using GNU's version of MAKE.
+#
+#
+#    Android NDK Full Distribution
+#    -----------------------------
+#
+#    When you download the Android Native Development Kit (NDK), it's a very
+#    big file!  The ZIP file contains the header files and libraries for all
+#    the versions of Android and for all supported architectures.  You'll also
+#    find the cross-compilation tools for all of the supported architectures.
+#
+#        https://developer.android.com/ndk/downloads/
+#
+#    I unzip the NDK distribution into the "/opt" directory; this creates,
+#    at the time I write this, a directory tree, "/opt/android-ndk-r13b".
+#    I then create a generic symbolic link to the distribution:
+#
+#        /opt/android-ndk => /opt/android-ndk-r13b
+#
+#    The header files and libraries are divided up by the NDK API "level",
+#    which began at 1 and is incremented for each new revision.  A mapping
+#    of API level to Android version is found here:
+#
+#        https://developer.android.com/ndk/guides/stable_apis.html
+#
+#    For some reason, a slightly different table is found here:
+#
+#        https://developer.android.com/guide/topics/manifest/uses-sdk-element.html#ApiLevels
+#
+#    The API levels reside in "platforms", such as "android-3", ...,
+#    "android-21", "android-22", etc.  You can build software for the
+#    different API levels and architectures directly from the full NDK
+#    distribution (which is what I do).  The header files and libraries
+#    are found in:
+#
+#        /opt/android-ndk/platforms/android-<level>/arch-<arch>/usr/
+#
+#    (NOTE regarding architectures under the platforms: "arm" means "arm32"
+#    and "arm64" is obviously "arm64".)  The cross-compilation tools are
+#    found in:
+#
+#        /opt/android-ndk-toolchains/<arch>-linux*/prebuilt/linux*/bin
+#
+#    (NOTE that, for the cross-compilation tools, the "arm64" architecture
+#    is called "aarch64", a GCC convention.)
+#
+#
+#    Standalone, Single API Level, Single Architecture Build Environment
+#    -------------------------------------------------------------------
+#
+#    Alternatively, you can build a standalone build environment for a
+#    specific API level and architecture by running the following shell
+#    script:
+#
+#        /opt/android-ndk/build/tools/make-standalone-toolchain.sh
+#
+#    Look inside to see the necessary options for specifying the platform
+#    ("android-<level>") and architecture.  The standalone build environment
+#    is installed in a directory you specify.  For example:
+#
+#        /opt/standalone-arm-android-21		(Installation directory)
+#        /opt/standalone-arm-android-21/bin/	(Cross-compilation tools)
+#        /opt/standalone-arm-android-21/sysroot/usr/include/	(Header files)
+#        /opt/standalone-arm-android-21/sysroot/usr/lib/	(Libraries)
+#
+#
+#    Shell Environment Variables to Set Before Running MAKE
+#    ------------------------------------------------------
+#
+#    Before using the Makefile, you must define some environment variables
+#    (although the Makefile will provide default values for undefined
+#    variables).  If you will be using the full distribution to build your
+#    software, you'll need the following variables:
+#
+#        NDK_HOME = /opt/android-ndk
+#        NDK_STANDALONE = 0
+#        NDK_API_LEVEL = 21, for example
+#        NDK_TARGET_ARCH = arm, arm64, mips, mips64, x86, or x86_64
+#
+#    If you're using a standalone build environment, you only have to define
+#    two environment variables:
+#
+#        NDK_HOME = /opt/standalone-arm-android-21
+#        NDK_STANDALONE = 1 or some non-zero number
+#        NDK_PIE = 1 or 0 for Position Independent Executables (PIE)
+#
+#    Regardless of whether your build environment is standalone or not,
+#    the Makefile will create the following (make) variables:
+#
+#        NDK_INCLUDE	(Header files)
+#        NDK_LIB	(Libraries)
+#        NDK_BIN	(Cross-compilation tools)
+#        CC and LD		(Appropriate cross-compilation compiler/loader)
+#        AR and RANLIB		(For building libraries)
+#        CFLAGS			(GCC "--sysroot" option)
+#        LDFLAGS		(GCC "--sysroot" option)
+#
+#    If you need to add options to CFLAGS and/or LDFLAGS in your Makefile,
+#    remember to use GNUMAKE's "+=" append operation to add to the options
+#    set in this file.
+#
+#*******************************************************************************
+
+
+NDK_HOME ?= /opt/android-ndk
+
+NDK_STANDALONE ?= 0
+
+ifeq ($(NDK_STANDALONE), 0)
+	NDK_API_LEVEL ?= 21
+				# arm, arm64/aarch64, mips, mips64, x86, x86_64
+	NDK_TARGET_ARCH ?= arm64
+ifeq ($(NDK_TARGET_ARCH), aarch64)
+				# GCC-based NDK convention is "arm64".
+        NDK_TARGET_ARCH = arm64
+endif
+        NDK_PIE ?=	\
+		$(if $(word $(NDK_API_LEVEL),	\
+			1 2 3 4 5 6 7 8 9 10 11 12 13 14 15), 1, 0)
+
+	NDK_TOOLCHAIN_ARCH ?= $(NDK_TARGET_ARCH:arm64=aarch64)
+	NDK_TOOLCHAIN :=	\
+		$(wildcard $(NDK_HOME)/toolchains/$(NDK_TOOLCHAIN_ARCH)*/prebuilt/*)
+
+	NDK_BIN = $(NDK_TOOLCHAIN)/bin
+	NDK_SYSROOT =	\
+		$(NDK_HOME)/platforms/android-$(NDK_API_LEVEL)/arch-$(NDK_TARGET_ARCH)
+else
+        NDK_PIE ?= 1
+
+	NDK_BIN = $(NDK_HOME)/bin
+	NDK_SYSROOT = $(NDK_HOME)/sysroot
+
+	NDK_API_LEVEL = not-used
+	NDK_TARGET_ARCH = not-used
+	NDK_TOOLCHAIN = not-used
+	NDK_TOOLCHAIN_ARCH = not-used
+endif
+
+NDK_INCLUDE = $(NDK_SYSROOT)/usr/include
+NDK_LIB = $(NDK_SYSROOT)/usr/lib
+
+CC := $(wildcard $(NDK_BIN)/*gcc)
+CFLAGS := --sysroot=$(NDK_SYSROOT)
+LD := $(CC:gcc=ld)
+LDFLAGS := --sysroot=$(NDK_SYSROOT)
+AR := $(CC:gcc=ar)
+RANLIB := $(CC:gcc=ranlib)
+
+ifneq ($(NDK_PIE), 0)
+    CFLAGS += -fPIE
+    LDFLAGS += -fPIE -pie
+endif
+
+#*******************************************************************************
+#
+#    For debugging purposes.
+#
+#print-android-variables:
+#	@echo "NDK_HOME STANDALONE API_LEVEL TARGET_ARCH PIE"
+#	@echo $(NDK_HOME)
+#	@echo $(NDK_STANDALONE)
+#	@echo $(NDK_API_LEVEL)
+#	@echo $(NDK_TARGET_ARCH)
+#	@echo $(NDK_PIE)
+#	@echo "NDK_SYSROOT INCLUDE LIB"
+#	@echo $(NDK_SYSROOT)
+#	@echo $(NDK_INCLUDE)
+#	@echo $(NDK_LIB)
+#	@echo "NDK_TOOLCHAIN_ARCH TOOLCHAIN BIN"
+#	@echo $(NDK_TOOLCHAIN_ARCH)
+#	@echo $(NDK_TOOLCHAIN)
+#	@echo $(NDK_BIN)
+#	@echo "CC CFLAGS LD LDFLAGS AR RANLIB"
+#	@echo $(CC)
+#	@echo $(CFLAGS)
+#	@echo $(LD)
+#	@echo $(LDFLAGS)
+#	@echo $(AR)
+#	@echo $(RANLIB)
+#
+#*******************************************************************************

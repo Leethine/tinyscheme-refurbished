@@ -1,0 +1,42 @@
+# $Id: Makefile.cygwin,v 1.2 2016/03/13 01:19:22 alex Exp alex $
+#
+
+PROGRAM = cornet
+
+SRCS = \
+	cornet.c \
+	command.c \
+	configure.c \
+	link.c \
+	monitor.c \
+	ranging.c \
+	sequence.c \
+	telemetry.c \
+	utility.c
+
+OBJS = $(SRCS:.c=.o)
+
+ROOT = ..
+
+INSTALL_BIN_DIR ?= $(HOME)/local/bin/$(arch)
+
+LIBS = \
+	$(ROOT)/libgpl/libgpl.a \
+	-ltirpc			# Needed by later Cygwin versions for XDR.
+
+CFLAGS = -g -O -Wall
+CPPFLAGS = \
+	-I. \
+	-I$(ROOT)/include
+LINK.c = $(CC)
+
+all::	$(PROGRAM)
+
+$(PROGRAM): $(OBJS)
+	$(LINK.c) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+
+clean::
+	-$(RM) $(OBJS) $(PROGRAM)
+
+install:
+	cp $(PROGRAM) $(INSTALL_BIN_DIR)

@@ -1,0 +1,233 @@
+# $Id: android-ndk-make-setup.txt,v 1.1 2023/06/11 17:26:33 alex Exp alex $
+#
+#*******************************************************************************
+#
+#    Setup Android NDK-Specific MAKE Variables (LLVM Toolchains)
+#    ===========================================================
+#
+#    This file sets up MAKE variables used to access and invoke the
+#    desired Android version and target CPU header files, libraries,
+#    and cross-compilation tools.  The file should be "include"d at
+#    the beginning of an actual Makefile:
+#
+#        include ../include/android-ndk-make-setup.txt
+#
+#    The setup performed here makes use of GNUMAKE extensions, so
+#    your Makefiles should be run using GNU's version of MAKE.
+#
+#    Output MAKE Variables
+#    ---------------------
+#
+#    This setup file defines the following MAKE variables for use in Makefiles:
+#
+#        CC - appropriate C cross-compiler
+#        CFLAGS - appropriate "--target=..." and "--sysroot=..." options
+#
+#        LD - appropriate linker/loader (which is simply $(CC)!)
+#        LDFLAGS - appropriate "--target=..." and "--sysroot=..." options
+#
+#        AR and RANLIB - for building libraries
+#
+#    Makefiles requiring additional CFLAGS and LDFLAGS options should add
+#    them using GNU MAKE's "+=" operation.
+#
+#    Other NDK-related MAKE variables are also defined and may be useful
+#    in Makefiles; see the body of this file for those variables.
+#
+#    Input Environment/MAKE Variables
+#    --------------------------------
+#
+#    To generate the definitions above, this setup file depends on certain
+#    essential parameters.  Zero or more of these parameters may be defined
+#    previously as environment variables; sensible defaults are supplied by
+#    this setup file if necessary:
+#
+#        NDK_HOME = /opt/android-ndk (default)
+#        NDK_BUILD_PLATFORM = linux-x86_64 (default)
+#        NDK_TARGET_ARCH = aarch64 (default; or arm, x86, x86_64)
+#        NDK_API_LEVEL = 29 (default, Android 10)
+#
+#*******************************************************************************
+
+#*******************************************************************************
+#
+#    Details If Desired
+#    ==================
+#
+#    This setup file was adapted from the earlier GCC-based setup file,
+#    "android-ndk-gcc-make-setup.txt", so I chopped up the better-organized
+#    prologue of the earlier file as I was researching/experimenting how to
+#    get this LLVM-based file working.  I apologize for the scatter-shot
+#    approach of the remaining documentation.
+#
+#    Android NDK Distribution
+#    ------------------------
+#
+#    When you download the Android Native Development Kit (NDK), it's a very
+#    big file!  The ZIP file contains the header files and libraries for all
+#    the versions of Android and for all supported architectures.  You'll also
+#    find the cross-compilation tools for all of the supported architectures.
+#
+#        https://developer.android.com/ndk/downloads/
+#
+#    I unzip the NDK distribution into the "/opt" directory; this creates,
+#    at the time I write this, a directory tree, "/opt/android-ndk-r25c".
+#    I then create a generic symbolic link to the distribution:
+#
+#        /opt/android-ndk => /opt/android-ndk-r25c
+#
+#    (I'll hereafter use "$NDK" to refer to the "/opt/android-ndk" directory.)
+#
+#    Pre-built cross-compilation toolchains are provided for various build
+#    environment operating systems and architectures (as opposed to the
+#    cross-compilation target architectures); for example, there is a
+#    "linux-x86_64" toolchain for building Android applications on a
+#    Linux PC:
+#
+#        $NDK/toolchains/llvm/prebuilt/linux-x86_64
+#
+#    which I'll refer to as $NDK_TOOLCHAIN.
+#
+#    In addition to the cross-compilation tools (compiler, linker, etc.)
+#    for the build environment, a toolchain also includes the header files
+#    and libraries for all of the supported target architectures and NDK
+#    API "level"s, which began at 1 and are incremented for each new
+#    revision.  A mapping of API level to Android version is found here:
+#
+#        https://source.android.com/docs/setup/about/build-numbers
+#
+#    and here:
+#
+#        https://apilevels.com/
+#
+#    (As of May 6, 2023, the latter page lists API levels 1 to 34, covering
+#    Android 1 up into Android 14.)
+#
+#    The target header files and libraries are found in:
+#
+#        $NDK_TOOLCHAIN/sysroot/usr/include
+#
+#    and:
+#
+#        $NDK_TOOLCHAIN/sysroot/usr/lib/<arch>-<os>-android/<level>
+#
+#    respectively, <arch> is the target architecture, <os> is the build
+#    environment's operating system, and <level> is the API level.  I think.
+#    I'm not sure why the build OS is repeated in the file name.
+#
+#    (NOTE regarding target architectures: "arm" means "arm32".  The "arm64"
+#    architecture is called "aarch64", a GCC convention.)
+#
+#    The cross-compilation tools are found in:
+#
+#        $NDK_TOOLCHAIN/bin
+#
+#    Target architectures, ABIs, and LLVM triples (used to define the target
+#    for LLVM cross-compilation) are defined at:
+#
+#        https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
+#
+#    Currently supported targets as of June 2023 are:
+#
+#            Name         arch        ABI            triple
+#            ----         ----        ---            ------
+#        32-bit ARMv7    arm      armeabi-v7a  arm-linux-androideabi
+#        64-bit ARMv8    aarch64  aarch64-v8a  aarch64-linux-android
+#        32-bit Intel    x86      x86          i686-linux-android
+#        64-bit Intel    x86_64   x86_64       x86_64-linux-android
+#
+#    (I see that the most up-to-date list is included in the NDK distribution
+#    itself in JSON format: "$NDK/meta/abis.json".)
+#
+#    The LLVM C compiler, "clang", is invoked with the "--target" option
+#    specifying the target architecture (triple) with API level appended:
+#
+#        $NDK_TOOLCHAIN/bin/clang --target=<triple><level>
+#
+#    (This setup file also adds to the command line the "--sysroot" option
+#    needed to locate the header and library files.)
+#
+#    For example, on a Linux PC ("linux-x86_64"), the C compilation command
+#    for ARM64 processors, API level 29 is:
+#
+#        $NDK_TOOLCHAIN/bin/clang \
+#		--target=aarch64-linux-android29 \
+#		--sysroot=$NDK_TOOLCHAIN/sysroot
+#
+#*******************************************************************************
+
+
+NDK_HOME ?= /opt/android-ndk
+
+NDK_BUILD_PLATFORM ?= linux-x86_64
+
+NDK_API_LEVEL ?= 29
+			# arm, aarch64/arm64, x86, x86_64
+NDK_TARGET_ARCH ?= aarch64
+ifeq ($(NDK_TARGET_ARCH), arm64)
+NDK_TARGET_ARCH = aarch64
+endif
+
+#    An "associative array" of architecture-triple mappings.  (See Paul
+#    D. Smith's "Metaprogramming Make III - Constructed Macro Names" at
+#    "https://make.mad-scientist.net/constructed-macro-names/".)
+
+arm_NDK_TRIPLE := arm-linux-androideabi
+aarch64_NDK_TRIPLE := aarch64-linux-android
+x86_NDK_TRIPLE := i686-linux-android
+x86_64_NDK_TRIPLE := x86_64-linux-android
+
+NDK_TARGET_TRIPLE ?= $($(NDK_TARGET_ARCH)_NDK_TRIPLE)$(NDK_API_LEVEL)
+
+			# Position-independent executables for levels 21+
+NDK_PIE ?= 1
+
+NDK_TOOLCHAIN :=	\
+	$(NDK_HOME)/toolchains/llvm/prebuilt/$(NDK_BUILD_PLATFORM)
+
+NDK_BIN = $(NDK_TOOLCHAIN)/bin
+NDK_SYSROOT = $(NDK_TOOLCHAIN)/sysroot
+NDK_INCLUDE = $(NDK_SYSROOT)/usr/include
+NDK_LIB = $(NDK_SYSROOT)/usr/lib
+
+CC := $(NDK_BIN)/clang
+CFLAGS := --sysroot=$(NDK_SYSROOT) --target=$(NDK_TARGET_TRIPLE)
+LD := $(CC)
+LDFLAGS := --sysroot=$(NDK_SYSROOT) --target=$(NDK_TARGET_TRIPLE)
+
+AR := $(NDK_BIN)/llvm-ar
+RANLIB := $(NDK_BIN)/llvm-ranlib
+
+ifneq ($(NDK_PIE), 0)
+    CFLAGS += -fPIE
+    LDFLAGS += -fPIE -pie
+endif
+
+#*******************************************************************************
+#
+#    For debugging purposes.
+#
+#print-android-variables:
+#	@echo "NDK_HOME BUILD_PLATFORM API_LEVEL TARGET_ARCH TARGET_TRIPLE PIE"
+#	@echo $(NDK_HOME)
+#	@echo $(NDK_BUILD_PLATFORM)
+#	@echo $(NDK_API_LEVEL)
+#	@echo $(NDK_TARGET_ARCH)
+#	@echo $(NDK_TARGET_TRIPLE)
+#	@echo $(NDK_PIE)
+#	@echo "NDK_SYSROOT NDK_INCLUDE NDK_LIB"
+#	@echo $(NDK_SYSROOT)
+#	@echo $(NDK_INCLUDE)
+#	@echo $(NDK_LIB)
+#	@echo "NDK_TOOLCHAIN BIN"
+#	@echo $(NDK_TOOLCHAIN)
+#	@echo $(NDK_BIN)
+#	@echo "CC CFLAGS LD LDFLAGS AR RANLIB"
+#	@echo $(CC)
+#	@echo $(CFLAGS)
+#	@echo $(LD)
+#	@echo $(LDFLAGS)
+#	@echo $(AR)
+#	@echo $(RANLIB)
+#
+#*******************************************************************************

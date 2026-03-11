@@ -1,0 +1,169 @@
+# $Id$
+#*******************************************************************************
+#
+#    REX_UTIL Help Text for Programs
+#
+#*******************************************************************************
+#
+#    To compile this file into a program:
+#
+#    Convert the file into an array of C strings using the following sed
+#    commands in the order given:
+#
+#        /^#/d		-- Delete lines beginning with "#"; i.e., this prologue.
+#        s|\\|\\\\|g	-- Escape all backslashes in the file so that the
+#			   C compiler inserts a literal backslash in the
+#			   string,  "\" => "\\".
+#        s|"|\\"|g	-- Escape all double quotes in the file so that
+#			   the C compiler can distinguish them from the
+#			   double quotes that will begin and end the string.
+#        s|	|\\t|g	-- Convert all tabs to C's "\t" specifier.  Either
+#        s|\t|\\t|g	   one of these commands will work.  The first has
+#			   an actual tab character for the search string;
+#			   the second has "\t", which sed will treat as
+#			   a tab character in the search string.
+#        s|\f|\\f|g	-- I like form feeds, so sue me!
+#        s|^|    "|	-- Indent and insert a double quote delimiter at
+#			   the beginning of the string.
+#        s|$|",|	-- Append a double quote delimiter at the end of
+#			   the string, plus a comma.
+#
+#    Insert the output into a C array of strings:
+#
+#        static  const  char  *RexUtilHelp[] = {
+#            "<first-line>",
+#            ...,
+#            "<last-line>",
+#            NULL
+#        } ;
+#
+#    What I do is have a Makefile run this text file through sed and save
+#    its output in "rex_util_help.h", so I declare the array of strings
+#    as follows:
+#
+#        static  const  char  *RexUtilHelp[] = {
+#        #    include  "rex_util_help.h"
+#            NULL
+#        } ;
+#
+#*******************************************************************************
+#
+#
+Basic RE Symbols:
+
+    c       matches character c.
+    \c      matches character c.  Escaping c in this way allows
+            matching a literal character c when c is an RE special
+            symbol.  For example, "(" is a special symbol indicating
+            the start of an RE group and doesn't actually match any
+            character itself.  However, "\(" has nothing to do with
+            groups and matches a literal left parenthesis in the
+            target text.
+    .       matches any character.
+    ^  $    anchor the match at the beginning and end of the line,
+            respectively.  Aside from appearing at the very
+            beginning and at the very end of the complete RE,
+            these anchors can also be used with the same meanings
+            in alternation expressions; for example, "^abc|^def$".
+
+Quantified regular expressions:
+
+    RE*     matches zero or more instances of the RE.
+    RE+     matches one or more instances of the RE.
+    RE?     matches zero or one instance of the RE.
+    RE{m}   matches exactly M instances of the RE.
+    RE{m,n} matches between M and N instances of the RE.
+
+Concatenation and alternation:
+
+    RE1RE2  matches RE1 followed immediately by RE2 (no intervening
+            spaces in the RE patterns or in the target string).
+    RE1|RE2 matches RE1 or RE2.
+
+Grouping:
+
+    (RE)    allows grouping of RE's.  These subexpressions also
+            function as capture groups, the indices of which are
+            automatically assigned according to the order of the
+            left parentheses.  The indices begin with 1 and there
+            is no limit on the number of groups, memory permitting.
+    (?<name>RE)
+            assigns a name, enclosed in angle brackets, to a
+            capture group.  In replacement and substitution,
+            the capture group can be referenced by index or name.
+    (?:RE)  specifies a non-capture group.  The group has no index
+            and cannot be referenced in substitution strings.  Its
+            simple purpose is grouping REs.
+
+Special Character Sequences:
+
+    \xHH    matches the character with the given 2-digit,
+            hexadecimal value.
+    \uHHHH  inserts the 1 to 4 characters of the UTF-8 representation
+            of Unicode code point U+HHHH.  This is for code points in
+            the Basic Multilingual plane, U+0000 through U+FFFF.  The
+            code point must be specified as 4 hexadecimal digits.
+    \UHHHHHH
+            inserts the 1 to 4 characters of the UTF-8 representation
+            of Unicode code point U+HHHHHH.  This is for code points
+            in any of the 17 Unicode planes; the code points range
+            from U+000000 to U+10FFFF.  6 hexadecimal digits must
+            be specified.
+    \u{HHH...}
+            specifies a Unicode code point with a variable number of
+            hexadecimal digits.
+    \d      matches a decimal digit, '0' to '9'; equivalent to "[0-9]".
+    \D      matches anything but a decimal digit, '0' to '9'.  Equivalent
+            to "[^[:digit:]]".
+
+Character Classes (Outer Square Brackets):
+
+    [...]   matches classes of characters between the square brackets.
+    [^...]  matches anything but the classes of characters.
+
+Character Classes (Within the Outer Square Brackets):
+
+    c-c     matches any character in a range of characters.  Any
+            number of these ranges may be specified between the
+            square brackets or between the complementing caret
+            and the right square bracket.  For example, "[123a-z45]"
+            matches the numbers '1', '2', '3', '4', and '5' and the
+            lower-case English alphabet (letters 'a' through 'z').
+    c       matches the specified character; e.g., "[aeiou]" matches a vowel.
+    [:class:]    -- must appear inside [...] or [^...]
+            matches an ASCII character in the specified class:
+                [:alnum:]    [:digit:]    [:space:]
+                [:alpha:]    [:graph:]    [:upper:]
+                [:ascii:]    [:lower:]    [:xdigit:]
+                [:blank:]    [:print:]    [:word:]
+                [:cntrl:]    [:punct:]
+            See the man entries for isalnum(3), etc. for a description
+            of these classes.  NOTE that these brackets are inner square
+            brackets and must appear inside the outer square brackets; e.g.,
+                        [^A-Z[:lower:]@#![:digit:]]
+            will NOT match upper- ("A-Z") or lower-case ("[:lower:]")
+            alphabetic characters, punctuation marks @, #, and ! ("@#!"),
+            or decimal digits ("[:digit:]").
+
+Special Character Sequences in Replacement Text:
+
+    \M  $M
+    \<M>  $<M>
+            insert subexpression M (in the range 1..N) matched by the RE;
+            enclose multi-digt numbers (10 and up) in angle brackets.
+    \<name>
+    $<name> insert the named group if it was matched by the RE; enclose
+            names in angle brackets.
+    \&  $&
+    \0  $0  insert the entire text matched by the RE.
+    \`  $`  insert the text preceding the match.
+    \'  $'  insert the text following the match.
+    \l...
+    $l...   insert the numbered or named group matched by the RE,
+            converted to lower case.  For example, "\lM", "$l<M>",
+            "\l<name>", "$l&", and "\l`".
+    \u...
+    $u...   insert the numbered or named group matched by the RE,
+            converted to upper case.  For example, "$uM", "\u<M>",
+            "$u<name>", "\u&", and "$u'".
+    \c      insert character 'c' (e.g., "\$" gives "$").

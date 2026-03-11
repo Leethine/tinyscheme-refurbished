@@ -1,0 +1,66 @@
+# $Id$
+#
+
+PROGRAMS = \
+	chafn colior cvtdec dump frize frob \
+	gcd gflow gqtest hls pjoin primal primate rdate \
+	scanet sing squint strip8 subtle tag311 talknet trex wbc
+
+ROOT = ..
+
+INSTALL_BIN_DIR ?= $(HOME)/local/bin/$(ARCH)
+
+CPPFLAGS = \
+	-DHAVE___INT128=1 \
+	-I. \
+	-I$(ROOT)/include
+CFLAGS = -g -O -Wall -pedantic $(CPPFLAGS)
+
+LDFLAGS = \
+	-L$(ROOT)/libgpl \
+	-g
+LDLIBS = -lgpl -lm
+RM = rm -f
+
+#*******************************************************************************
+#
+#    Compile and link all of the programs.
+#
+#*******************************************************************************
+
+all::	$(PROGRAMS)
+
+#*******************************************************************************
+#
+#    Command:
+#
+#        % "make rex_henry_spencer_tests.h.new
+#
+#    Generate a header file with each line of Henry Spencer's test suite
+#    converted to a C string.  The generated header has a ".new" extension
+#    and is intended to replace the body of the version-controlled ".h"
+#    file when changes to the test suite are made.
+#
+#    NOTE that the backslashes ('\') MUST be substituted BEFORE the quotation
+#    marks ('"'); the substitution for the quotation mark is \" and those
+#    backslashes are not to be doubled.
+#
+#*******************************************************************************
+
+REX_TESTS = rex_henry_spencer_tests
+
+$(REX_TESTS).h.new:	$(ROOT)/include/$(REX_TESTS).txt
+	$(RM) $@
+	sed	-e 's|\\|\\\\|g'	\
+		-e 's|"|\\"|g'		\
+		-e 's|\t|\\t|g'		\
+		-e 's|\f|\\f|g'		\
+		-e 's|^|    "|'		\
+		-e 's|$$|",|'		\
+		$(ROOT)/include/$(REX_TESTS).txt > $@
+
+clean::
+	-$(RM) $(PROGRAMS) *.o *.vcxproj.bak $(VCXSNEW) $(REX_TESTS).h.new
+
+install:
+	cp $(PROGRAMS) $(INSTALL_BIN_DIR)

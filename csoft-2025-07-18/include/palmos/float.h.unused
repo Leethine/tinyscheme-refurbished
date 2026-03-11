@@ -1,0 +1,14 @@
+/* $Id$ */
+/*******************************************************************************
+
+    float.h
+
+    Standard C Floating-Point Definitions.
+
+*******************************************************************************/
+
+#ifndef  PALM_FLOAT_H		/* Has the file been INCLUDE'd already? */
+#define  PALM_FLOAT_H  yes
+
+
+#endif				/* If this file was not INCLUDE'd previously. */

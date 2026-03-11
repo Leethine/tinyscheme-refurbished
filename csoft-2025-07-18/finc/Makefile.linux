@@ -1,0 +1,64 @@
+# $Id: Makefile.linux,v 1.2 2016/03/13 01:25:57 alex Exp alex $
+#
+
+PROGRAMS = finc nicl
+
+LIBRARY = libfinc.a
+
+SRCS = \
+	words_drs.c \
+	words_lfn.c \
+	words_misc.c \
+	words_net.c \
+	words_iox.c \
+	words_skt.c \
+	words_tcp.c \
+	words_tv.c
+
+OBJS = $(SRCS:.c=.o)
+
+ROOT = ..
+
+INSTALL_DIR ?= $(HOME)/local/bin/$(arch)
+
+FICL_INC ?= $(ROOT)/ficl
+LIBFICL_STATIC ?= $(ROOT)/ficl/libficl.a
+LIBGPL_STATIC = $(ROOT)/libgpl/libgpl.a
+
+CC = gcc
+CFLAGS = -g -Wall -pedantic
+CPPFLAGS = \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(FICL_INC)
+LINK.c = $(CC)
+LDFLAGS = -g
+LDLIBS := \
+	$(LIBRARY) \
+	$(LIBGPL_STATIC) \
+	$(LIBFICL_STATIC) \
+	-lm
+
+ARFLAGS = rv
+RANLIB = ranlib
+CP = cp -p
+RM = rm -f
+
+all::	$(LIBRARY) $(PROGRAMS)
+
+$(LIBRARY): $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+finc: finc.o $(LIBRARY)
+	$(LINK.c) $(LDFLAGS) -o $@ finc.o $(LDLIBS)
+
+nicl: nicl.o $(LIBRARY)
+	$(LINK.c) $(LDFLAGS) -o $@ nicl.o $(LDLIBS)
+
+clean::
+	-$(RM) *.o $(LIBRARY) $(PROGRAMS)
+
+install:
+	$(CP) $(PROGRAMS) $(INSTALL_DIR)

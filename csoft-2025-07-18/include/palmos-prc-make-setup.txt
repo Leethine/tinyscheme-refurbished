@@ -1,0 +1,537 @@
+# $Id: palmos-prc-make-setup.txt,v 1.4 2021/04/21 02:31:04 alex Exp $
+#
+#*******************************************************************************
+#
+#    PalmOS/prc-tools MAKE Variables and Rules
+#
+#
+#    This file sets up MAKE variables and rules used to build PalmOS
+#    libraries and programs using the prc-tools cross-compilation
+#    development package and the desired version of the PalmOS SDK.
+#
+#    This text file contains:
+#
+#        (1) An "all:" target for programs, libraries, and their associated
+#            ".def" files that will be generated.
+#
+#        (2) Definitions of the cross-compilation development tools such as
+#            the compiler, etc.
+#
+#        (3) Rules to build programs and libraries.
+#
+#    Some variables must be defined before "include"ing this file in an
+#    actual Makefile; "include"ing the file is done as follows (with
+#    "../" replaced with whatever is necessary to point to the "include/"
+#    directory containing the text file:
+#
+#        include ../include/palmos-prc-make-setup.txt
+#
+#    The setup performed here makes use of GNUMAKE extensions, so your
+#    Makefiles should be run using GNU's version of MAKE.
+#
+#*******************************************************************************
+
+#*******************************************************************************
+#
+#    Building a Program with a Single Source File
+#    ============================================
+#
+#    (Or multiple programs, each with a single source file, in the same
+#    directory.)  Assuming $(ROOT) points to the root of the development
+#    directory tree, one Make variable must be defined before "include"ing
+#    this setup file:
+#
+#        PROGRAM = <name>.prc
+#        include $(ROOT)/include/palmos-prc-make-setup.txt
+#
+#    or
+#
+#        PROGRAMS = <name1>.prc <name2>.prc ...
+#        include $(ROOT)/include/palmos-prc-make-setup.txt
+#
+#    (The PROGRAM and PROGRAMS variables are interchangeable: PROGRAM can
+#    be a list of ".prc" files and PROGRAMS can be a single ".prc" file.)
+#    It is assumed that a ".prc" file is built from a ".c" source file of
+#    the same name.
+#
+#    Before or after the setup file is "include"d (it doesn't matter when),
+#    Make variable LIBS must be defined as the list of local libraries to
+#    which a program will be linked.  These are libraries built with
+#    PRC-TOOLS as part of your project.
+#
+#        LIBS = ... list of local libraries to link against ...
+#
+#    There is a "chicken or egg" problem with regard to the use of object
+#    code sections.  To build a program, the link process needs a list of
+#    the code sections (in the form of an assembled assembly file), but
+#    you can't determine the actual code sections used until after the
+#    program is linked.  The rules in the setup file work around this
+#    as follows:
+#
+#        (1) With the appropriate PRC-TOOLS objdump(1) program, dump the
+#            target program's object file(s) and the $(LIBS) libraries.
+#            Then extract the code section definitions, which will be the
+#            exact set or a superset of the required code sections.
+#        (2) Link the program.  (This produces an executable file, not the
+#            ".prc" file.)
+#        (3) Dump the program's executable file and extract the definitions
+#            for the actual code sections used.
+#        (4) Relink the program with the definitions of the actual code
+#            sections used.
+#        (5) Reorganize the executable into a ".prc" file.
+#
+#    My programs typically make use of my LIBGPL library and the BSD-XDR
+#    LIBXDR library, so, for example, the Makefile for my "tools" directory
+#    looks like this:
+#
+#        PROGRAMS = colior.prc primal.prc scanet.prc squint.prc
+#        ROOT = ..
+#        include $(ROOT)/include/palmos-prc-make-setup.txt
+#
+#        LIBGPL = $(ROOT)/libgpl
+#        BSD_XDR = $(ROOT)/bsd-xdr
+#        LIBXDR = $(BSD_XDR)/lib
+#        LIBS = $(LIBGPL)/libgpl.a $(LIBXDR)/libxdr.a
+#        LDLIBS := $(LIBS) -lNetSocket
+#
+#        ... additions to CFLAGS, CPPFLAGS, and LDFLAGS;
+#            see "Preprocessing, compiling, and linking options" below ...
+#
+#    NOTE the required definition of LDLIBS with the local libraries
+#    and any system libraries that are needed.
+#
+#*******************************************************************************
+
+#*******************************************************************************
+#
+#    Building a Program with Multiple Source Files
+#    =============================================
+#
+#    A program with multiple source files is handled similarly to a program
+#    with a single source file, except that you must define Make variable
+#    SRCS before "include"ing this setup file.  Again, it is assumed that
+#    the ".prc" file has a main source file of the same name and a different
+#    extension.  (My software consists entirely of ".c" source files, but
+#    other source types could be used as long as there are implicit or
+#    explicit rules for compiling such source files into ".o" object files.)
+#
+#    The SRCS variable is then a list of the remaining source files.  The
+#    following Makefile fragment:
+#
+#        PROGRAM = <name>.prc
+#        SRCS = <other1>.c <other2>.c ...
+#        include $(ROOT)/include/palmos-prc-make-setup.txt
+#
+#    will
+#
+#        (1) compile the main program source file,
+#        (2) compile the other source files, and
+#        (3) link the resulting object files--"<name>.o", "<other1>.o",
+#            "other2.o", etc.--into the final program.
+#
+#    NOTE again that:
+#
+#      - SRCS must be defined before "include"ing this setup file.
+#
+#      - SRCS is a list of the other source files and excludes the
+#        main program source file.
+#
+#    (Internally, an OBJS list of the object files excluding the main
+#    program's object file is generated.  I originally required OBJS
+#    to be defined and SRCS was simply a cosmetic variable.  I tried
+#    using GNU make's .SECONDEXPANSION target to allow OBJS to be defined
+#    after the "include", but, although it worked for OBJS, the secondary
+#    expansion caused other problems.)
+#
+#    My software development tree contains a project-specific branch,
+#    "epoch3":
+#
+#        $(ROOT)/bsd-xdr		-- Top-level headers, libraries, etc.
+#        $(ROOT)/include
+#        $(ROOT)/libgpl
+#        $(ROOT)/tools
+#        $(ROOT)/epoch3/include		-- Epoch3 headers, libraries, etc.
+#        $(ROOT)/epoch3/libepl
+#        $(ROOT)/epoch3/entice
+#
+#    The "epoch3" software depends on its own header files and library and
+#    on the top-level header files and libraries.  My ENerTec In-Circuit
+#    Emulator program, "entice", is built from 4 source files:
+#
+#           entice.c  TlmChannel.c  TlmClient.c  TlmEmulator.c
+#
+#    using a Makefile that looks like this:
+#
+#        PROGRAM = entice.prc
+#        SRCS = TlmChannel.c TlmClient.c TlmEmulator.c
+#        ROOT = ../..			-- Two levels up!
+#        include $(ROOT)/include/palmos-prc-make-setup.txt
+#
+#        LIBGPL = $(ROOT)/libgpl
+#        BSD_XDR = $(ROOT)/bsd-xdr
+#        LIBXDR = $(BSD_XDR)/lib
+#        EPOCH3 = $(ROOT)/epoch3
+#        LIBEPL = $(EPOCH3)/libepl
+#
+#        LIBS = $(LIBEPL)/libepl.a $(LIBGPL)/libgpl.a $(LIBXDR)/libxdr.a
+#        LDLIBS := $(LIBS) -lNetSocket
+#
+#        ... additions to CFLAGS, CPPFLAGS, and LDFLAGS;
+#            see "Preprocessing, compiling, and linking options" below ...
+#
+#    (Incidentally, the Powers That Be were not happy with the name, "entice",
+#    and the production program was given the pedestrian name, "SimHandler".
+#    Uugghh!!)
+#
+#*******************************************************************************
+#
+#*******************************************************************************
+#
+#    Building a Static Library
+#    =========================
+#
+#    A library is built from multiple source files, so its Makefile is
+#    similar to the Makefile for a program with multiple source files.
+#    Instead of defining a PROGRAM Make variable, variable LIBRARY
+#    specifies the name of the ".a" library archive file.  Variable
+#    SRCS specifies the source files for the object files that will
+#    be added to the library; as always, SRCS must be defined before
+#    "include"ing this setup file.
+#
+#        LIBRARY = <name>.a
+#        SRCS = <one-file>.c <another-file>.c ...
+#        include $(ROOT)/include/palmos-prc-make-setup.txt
+#
+#    This setup file contains the rules needed to compile the source files
+#    and to construct the library from the resulting object files.  A ".def"
+#    file listing all the code sections in the library is also generated
+#    for the programmer's information; the file is not needed when building
+#    programs that link to the library.
+#
+#    My General Purpose Library (LIBGPL) is built with the following Makefile:
+#
+#        LIBRARY = libgpl.a
+#        SRCS =  \
+#                StdIOPalm.c \
+#                SioMain.c \
+#                aperror.c \
+#                bio_util.c \
+#                ... \
+#                wcs_util.c \
+#                xdr_util.c \
+#                xnet_util.c
+#        ROOT = ..
+#        include $(ROOT)/include/palmos-prc-make-setup.txt
+#        ... additions to CFLAGS and CPPFLAGS; see "Preprocessing,
+#            compiling, and linking options" below ...
+#
+#*******************************************************************************
+
+#*******************************************************************************
+#
+#    Variables, Rules, and Targets
+#    =============================
+#
+#
+#    Variables
+#    ---------
+#
+#    Time for a more detailed look at this setup file.  First, the Make
+#    variables that need to be defined before the setup file is "include"d:
+#
+#        PROGRAM, PROGRAMS - one or more ".prc" files to be built.
+#        SRCS - list of source files excluding the main program source file.
+#        LIBS - list of local project libraries to which programs are linked.
+#            (Can be defined before or after "include"ing the setup file.)
+#        LDLIBS - list of all libraries that are explicitly passed to the
+#            linker.  In my limited experience, this list is composed of
+#            $(LIBS) and any PalmOS SDK libraries.  For example, most of
+#            my programs define "LDLIBS = $(LIBS) -lNetSocket" to link to
+#            my libraries and the PalmOS networking library.  Since this
+#            variable references $(LIBS), it should be defined after LIBS,
+#            before or after "include"ing the setup file.
+#
+#        LIBRARY - is the ".a" name of a library archive file to be built.
+#        SRCS - list of all source files whose objects will be added to
+#            the library.
+#
+#    The setup file derives a list, OBJS, of ".o" object files from the
+#    SRCS variable.  If necessary, a Makefile can use $(OBJS) after
+#    "include"ing the setup file.
+#
+#    The following two variables define (i) the version of the PalmOS SDK
+#    being used and (ii) the target Palm Pilot CPU architecture (which
+#    selects which set of GCC tools to use).  If these variables are not
+#    defined as environment variables or explicitly in a Makefile, they
+#    assume the default values shown.
+#
+#        PALMOS_VERSION - 3.5 (default), 4, or 5r3
+#        PALMOS_CPU - m68k (default), arm
+#
+#    Preprocessing, compiling, and linking options are defined with the
+#    following standard Make variables:
+#
+#        CPPFLAGS for the C Preprocessor:
+#            -Dexit=return
+#                Redefines the exit(3) call in the main() function.  This
+#                also redefines exit() calls in other functions and source
+#                files, which is problematic.
+#            -DSECTIONS_BY_MODULE
+#                Causes the "pragmatics.h" header file to define instances
+#                of the 'OCD ("<name>")' macro in header files as a GCC
+#                extension, '__attribute__ ((_section__ ("<name>")))',
+#                so that functions tagged as such are placed in the
+#                specified code sections.
+#            -DHAVE_FLPBUFFERATOF=0
+#                Defined only for PalmOS 3.5, which doesn't have the
+#                FlpBufferAToF() function (see SDK's "FloatMgr.h" file).
+#            -DPRE_VERSION_4
+#                Defined only for PalmOS 3.5.
+#
+#        CFLAGS for the C compiler:
+#            -palmos$(PALMOS_VERSION)
+#
+#        LDFLAGS for the linker:
+#            -palmos$(PALMOS_VERSION)
+#
+#    After "include"ing the setup file, a Makefile can redefine the variables
+#    above or append additional flags using the "+=" operator.  The Makefile
+#    should at least add the "-I<directory>" options to CPPFLAGS for the
+#    directories to be searched for header files.  I generally add debug,
+#    optimization, and warning options to CFLAGS.  Here, for example, are
+#    the extended flag variables that close out the Makefile for the "entice"
+#    program described above:
+#
+#        CFLAGS += -g -O -Wall
+#        CPPFLAGS += \
+#                -I. \
+#                -I$(EPOCH3)/include \
+#                -I$(ROOT)/include \
+#                -I$(BSD_XDR) \
+#                -I$(ROOT)/include/palm
+#        LDFLAGS += -g
+#
+#    Makefiles for libraries, such as the LIBGPL library described above,
+#    require similar additions to CFLAGS and CPPFLAGS, but LDFLAGS is
+#    obviously superfluous.
+#
+#    Finally, the setup file defines variables for the CPU-specific,
+#    GCC-related tools:
+#
+#        AR, AS, CC, LD, RANLIB, OBJDUMP
+#
+#    and for the PRC-TOOLS programs:
+#
+#        MULTIGEN, BUILDPRC
+#
+#    The CPU-specific tools have a "$(CPU)-palmos-" prefix in their names;
+#    e.g., CC is set to "m68k-palmos-gcc" or "arm-palmos-gcc" depending
+#    on the target CPU.
+#
+#
+#    Rules and Recipes
+#    -----------------
+#
+#    Five rules and recipes, along with GNU Make's implicit rules and
+#    recipes, build PalmOS programs and static libraries:
+#
+#        %.def: %.o $(OBJS) $(LIBS)
+#            Produces an initial guess of the required code sections by
+#            scanning the object files and local libraries.  Since all
+#            the object modules in the local libraries are scanned, the
+#            initial guess may include code sections from object modules
+#            that will not be linked in to the final program.  The "%.prc"
+#            rule below needs this initial guess to build an intermediate
+#            executable which is then scanned to determine the actual code
+#            sections used in the final program.
+#
+#        %-sections.o %-sections.ld: %.def
+#            Generates the assembly file, object file, and loader script
+#            for a program's sections.
+#
+#        %.prc: %.o $(OBJS) %-sections.o %-sections.ld
+#            Creates a program's ".prc" Palm Resource Code file, which is
+#            the form in which the executable is transferred to and run on
+#            a Palm Pilot.  This is a lengthy recipe that:
+#            (1) Links a program from its object files and libraries, using
+#                the initial guess of required code sections.
+#            (2) Generates an exact list of the required code sections and
+#                relinks the program.
+#            (3) Embeds the executable in a ".prc" Palm Resource Code file.
+#
+#        $(LIBRARY): $(OBJS)
+#            Creates a ".a" library archive from the separate object files.
+#
+#        %.def: %.a
+#            Generates a listing of all the code sections in a library,
+#            if a library is being built.  The listing in the ".def" file
+#            may be of interest to the programmer, but it is not used
+#            further in the build process.
+#
+#    The object files in $(OBJS) are compiled from their corresponding
+#    source files by the applicable implicit rules in GNU Make.
+#
+#
+#    Targets
+#    -------
+#
+#    This setup file defines two standard Makefile targets, "all:" and
+#    "clean:".  The enclosing Makefile is free to add other dependencies
+#    to the "all:" target and other recipes to the "clean:" target.
+#
+#        all:
+#            By convention, this is usually the first target in a Makefile.
+#            The "all:" target in the setup file has dependencies $(PROGRAM),
+#            $(PROGRAMS), and $(LIBRARY), so whatever configuration is being
+#            built will be built.  Building a program or programs and a
+#            library in the same Makefile is not recommended.
+#
+#        clean:
+#            Deletes all the intermediate and final files generated by the
+#            rules and recipes in the setup file, for all cases of $(PROGRAM),
+#            $(PROGRAMS), and $(LIBRARY).
+#
+#*******************************************************************************
+
+
+OBJS ?= $(addsuffix .o, $(basename $(SRCS)))
+
+all:   $(PROGRAM) $(PROGRAM:.prc=.def)
+all:   $(PROGRAMS) $(PROGRAMS:.prc=.def)
+all:   $(LIBRARY) $(LIBRARY:.a=.def)
+
+#*******************************************************************************
+#    PalmOS compiler options.  Customize as desired.
+#*******************************************************************************
+
+#				# SDK 3.5, 4, or 5r3
+PALMOS_VERSION ?= 3.5
+#				# m68k or arm
+PALMOS_CPU ?= m68k
+PALMOS_ARCH := $(PALMOS_CPU)-palmos
+
+CFLAGS := -palmos$(PALMOS_VERSION)
+
+CPPFLAGS := \
+	-Dexit=return \
+	-DSECTIONS_BY_MODULE \
+
+#	-DI_DEFAULT_HANDLER=HostFPrintF \
+#	"-DI_DEFAULT_PARAMS=HostLogFile()," \
+#	-DE_DEFAULT_HANDLER=HostFPrintF \
+#	"-DE_DEFAULT_PARAMS=HostLogFile(),"
+
+ifeq ($(PALMOS_VERSION), 3.5)
+CPPFLAGS += -DHAVE_FLPBUFFERATOF=0 -DPRE_VERSION_4
+endif
+
+LDFLAGS := -palmos$(PALMOS_VERSION)
+
+#*******************************************************************************
+#    The following definitions of various header directories are no longer
+#    used, but I'm keeping them here for future reference.
+#*******************************************************************************
+
+ifeq ($(shell if test -d /usr/lib/gcc-lib/$(PALMOS_ARCH)/; then echo yes; fi), yes)
+GCC_INCLUDE = $(wildcard /usr/lib/gcc-lib/$(PALMOS_ARCH)/*/include)
+else
+GCC_INCLUDE = $(wildcard /usr/local/lib/gcc-lib/$(PALMOS_ARCH)/*/include)
+endif
+
+ifeq ($(shell if test -d /usr/$(PALMOS_ARCH)/include; then echo yes; fi), yes)
+PRC_INCLUDE = /usr/$(PALMOS_ARCH)/include
+else
+PRC_INCLUDE = /usr/local/$(PALMOS_ARCH)/include
+endif
+
+ifeq ($(shell if test -d /usr/share/prc-tools/include; then echo yes; fi), yes)
+PRC_TOOLS_INCLUDE = /usr/share/prc-tools/include
+else
+PRC_TOOLS_INCLUDE = /usr/local/share/prc-tools/include
+endif
+
+#*******************************************************************************
+#    Simpler names for the build tools.
+#*******************************************************************************
+
+AR = $(PALMOS_ARCH)-ar
+ARFLAGS = rv
+AS = $(PALMOS_ARCH)-as
+CC = $(PALMOS_ARCH)-gcc
+LD = $(PALMOS_ARCH)-ld
+MULTIGEN = $(PALMOS_ARCH)-multigen
+RANLIB = $(PALMOS_ARCH)-ranlib
+RM = rm -f
+OBJDUMP = $(PALMOS_ARCH)-objdump
+BUILDPRC = build-prc
+
+#*******************************************************************************
+#    All the gory machinations needed to handle object code sections
+#    and to build a PalmOS ".prc" executable.
+#*******************************************************************************
+
+%.def: %.o $(OBJS) $(LIBS)
+	$(RM) $@
+	echo "application {" $(@:.def=) "cam }" > $@
+	echo "" >> $@
+	echo "multiple code {" >> $@
+	$(OBJDUMP) -h $< $(OBJS) $(LIBS) | awk '/^[ ]*[0-9][0-9]* [^\.]/ {printf "    \"%s\"\n", $$2}' >> $@
+	echo "}" >> $@
+
+%-sections.o %-sections.ld: %.def
+	$(MULTIGEN) $<
+	$(COMPILE.S) $(<:.def=)-sections.s
+
+%.prc: %.o $(OBJS) %-sections.o %-sections.ld
+	$(LINK.c) $< $(OBJS) $(@:.prc=)-sections.o $(@:.prc=)-sections.ld $(LDLIBS) -o $(@:.prc=)
+	$(RM) $(@:.prc=.def) $(@:.prc=)-sections.*
+	echo "application {" $(@:.prc=) "cam }" > $(@:.prc=.def)
+	echo "" >> $(@:.prc=.def)
+	echo "multiple code {" >> $(@:.prc=.def)
+	$(OBJDUMP) -h $(@:.prc=) | awk '/^[ ]*[0-9][0-9]* [^\.]/ {printf "    \"%s\"\n", $$2}' >> $(@:.prc=.def)
+	echo "}" >> $(@:.prc=.def)
+	$(MULTIGEN) $(@:.prc=.def)
+	$(COMPILE.S) $(@:.prc=)-sections.s
+	$(LINK.c) $< $(OBJS) $(@:.prc=)-sections.o $(@:.prc=)-sections.ld $(LDLIBS) -o $(@:.prc=)
+	$(BUILDPRC) -o $@ -t sdio -n Cmd-$(@:.prc=) -c ALEX $(@:.prc=.def) $(@:.prc=)
+
+$(LIBRARY): $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+%.def: %.a
+	$(RM) $@
+	echo "application {" $(@:.def=) "cam }" > $@
+	echo "" >> $@
+	echo "multiple code {" >> $@
+	$(OBJDUMP) -h $< | awk '/^[ ]*[0-9][0-9]* [^\.]/ {printf "    \"%s\"\n", $$2}' >> $@
+	echo "}" >> $@
+
+#		# Run the C Preprocessor on a source file, for debug purposes.
+%.i: %.c
+	$(COMPILE.c) -E $< >$@
+
+#*******************************************************************************
+#    Common clean-up.
+#*******************************************************************************
+
+clean:
+ifneq ($(strip $(PROGRAM)),)
+	-$(RM) $(PROGRAM)
+	-$(RM) $(PROGRAM:.prc=) $(PROGRAM:.prc=.o)
+	-$(RM) $(PROGRAM:.prc=.def) $(PROGRAM:.prc=-sections.*)
+endif
+ifneq ($(strip $(PROGRAMS)),)
+	-$(RM) $(PROGRAMS)
+	-$(RM) $(PROGRAMS:.prc=) $(PROGRAMS:.prc=.o)
+	-$(RM) $(PROGRAMS:.prc=.def) $(PROGRAMS:.prc=-sections.*)
+endif
+ifneq ($(strip $(LIBRARY)),)
+	-$(RM) $(LIBRARY) $(LIBRARY:.a=.def)
+endif
+ifneq ($(strip $(OBJS)),)
+	-$(RM) $(OBJS)
+endif
+
+#*******************************************************************************

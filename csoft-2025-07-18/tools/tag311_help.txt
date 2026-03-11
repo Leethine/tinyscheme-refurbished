@@ -1,0 +1,355 @@
+# $Id: tag311_help.txt,v 1.3 2024/05/28 11:38:51 alex Exp $
+#*******************************************************************************
+#
+#    TAG311 Help Text
+#
+#*******************************************************************************
+#
+#    To compile this file into a program:
+#
+#    Convert the file into a list of C strings:
+#
+#        TEXT_H_LINE ("<first line>")
+#        TEXT_H_LINE ("<second line>")
+#        ...
+#        TEXT_H_LINE ("<last line>")
+#
+#    using the following sed(1) commands in the order given:
+#
+#        /^#/d		-- Delete lines beginning with "#"; i.e., this prologue.
+#        s|\\|\\\\|g	-- Escape all backslashes in the file so that the
+#			   C compiler inserts a literal backslash in the
+#			   string,  "\" => "\\".
+#        s|"|\\"|g	-- Escape all double quotes in the file so that
+#			   the C compiler can distinguish them from the
+#			   double quotes that will begin and end the string.
+#        s|	|\\t|g	-- Convert all tabs to C's "\t" specifier.  Either
+#        s|\t|\\t|g	   one of these commands will work.  The first has
+#			   an actual tab character for the search string;
+#			   the second has "\t", which sed will treat as
+#			   a tab character in the search string.
+#        s|\f|\\f|g	-- I like form feeds, so sue me!
+#			-- Surround the string: TEXT_H_LINE ("<string>").
+#        s|^|TEXT_H_LINE ("|
+#        s|$|")|
+#
+#    These commands are collected in "../include/text_h.sed" and can be
+#    invoked as follows:
+#
+#        % sed -f ../include/text_h.sed tag311_help.txt > tag311_help.h
+#
+#    Once the header file has been generated, TAG311 then "#define"s
+#    TEXT_H_LINE to print each line of text:
+#
+#        #define  TEXT_H_LINE(s)  fprintf (helpout, "%s\n", s) ;
+#        #include  "tag311_help.h"
+#
+#*******************************************************************************
+#
+#
+#    NOTE that the "Usage:" text is NOT included in this help text.
+#    The help text is only printed if the "-help" option is given,
+#    whereas the usage text is printed for that option, but also in
+#    the event of an error or if there are no command-line arguments.
+#    Enhancing the TEXT_H_LINE scheme to distinguish between the
+#    usage text and the fuller, additional help text seemed more
+#    trouble than it's worth.
+#
+TAG311 lists, creates, and modifies the ID3 tags commonly found in MP3
+files.  ID3 version 1.1, 2.3, and 2.4 tags are supported.
+
+Usage conventions:
+
+  - TAG311 processes the options and arguments on the command line from left
+    to right, so options specifying operations and affecting these operations
+    must appear BEFORE the names of the file to which the operations are to
+    be applied.
+
+  - The "-glob" option causes TAG311 to treat each file name argument as
+    a wildcard file specification and to internally perform non-recursive
+    directory scans to find the matching file names.  As with the other
+    options, "-glob" must be specified BEFORE the wildcard file names.
+    (This is useful in shells that don't perform wildcard expansions.)
+
+LISTING TAGS
+------------
+
+Without any options, TAG311 lists the ID3 tags in one or more MP3 files.
+
+ID3v1 tags can be displayed in a "-brief" two-line format or a "-long"
+one-field-per-line format.
+
+ID3v2 tags are displayed as a list of frames, one per line.  The frames
+in the list can be numbered from 1 to N with the "-number" option; this
+is useful for the operations that have an <index> argument.
+
+CREATING/UPDATING TAGS
+----------------------
+
+To add new ID3 tags or to modify existing ones. specify one or more of
+the field options before the list of MP3 files:
+
+    -track <number>[/<total>]			(-t <number>[/<total>])
+    -song <title>				(-s <title>)
+    -artist <name>				(-a <name>)
+    -album <name>				(-b <name>)
+    -year <number>				(-y <number>)
+    -genre <string/number>			(-g <string/number>)
+    -comment <text>				(-c <text>)
+    -url [song|artist|album|venue,]<url>
+    -front <imageFile>
+    -back <imageFile>
+
+In the case of an existing tag, only the specified fields are updated in
+the tag.
+
+The musical genre can be an arbitrary text string or an ID3v1 number.
+A list of the ID3v1 numbers can be obtained with "tag311 -table genre".
+
+ID3v2 allows multiple comments with different language codes and/or
+descriptions.  Such comments can be created by specifying "-lang <code>"
+and/or "-desc <description>" before "-comment <text>".  The default
+language code is "eng" and the default description is an empty string.
+
+SETTING FRAMES FROM THE FILE NAME
+---------------------------------
+
+TAG311 can automatically set certain ID3 frames using fields/parts
+in MP3 file names:
+
+    % tag311 -set <parts> <file(s)>
+
+The fields/parts in the file names must be separated by " - ".  (A hyphen
+without spaces on either side is not seen as a field separator.)  The parts
+are specified with single characters:
+
+    a    Artist
+    b    Album
+    c    Comment
+    s    Song title
+    t    Track
+    y    Year
+
+For example, if the MP3 files in a multi-artist compilation are named
+as follows:
+
+    "<track> - <song> - <artist>.mp3"
+
+then the following TAG311 command will parse and set the track, song title,
+and artist name fields/frames in each file's ID3 tags:
+
+    % tag311 -set tsa <file(s)>
+
+The field separator can be changed from the default " - " with the
+"-field <separator>" option.
+
+Some characters commonly found in song titles and artist and album names
+are not allowed in file names; e.g., the forward slash, "/", is often used
+between songs in the title for a medley.  TAG311 supports its own encoding
+of such characters in file names using an escape sequence, "@<char>", where
+<char> is a mnemonic character identifying the encoded special character.
+For example, "@f" encodes a forward slash and "@q" encodes a question mark.
+"@" can be changed to another character with the "-escape <esc>" option.
+
+The full complement of both <parts> flags and @-escaped characters can be
+displayed with TAG311's "-table name" option.
+
+RENAMING FILES USING FRAME VALUES
+---------------------------------
+
+TAG311 can do the reverse operation, renaming a file with fields/parts
+drawn from selected frames in the file's tag(s):
+
+    % tag311 [-test] -rename <parts> <file(s)>
+
+where <parts> is the same as in the "-set <parts>" option described above.
+Special characters in a frame's value are encoded as "@<char>" escape
+sequences, also described above.
+
+For example,
+
+    % tag311 -rename tsa <file(s)>
+
+will rename each file as:
+
+    "<track> - <song> - <artist>.mp3"
+
+With the "-test" option, "-rename <parts>" will list the new file names,
+but not actually rename the files.
+
+DELETING FRAMES/TAGS
+--------------------
+
+Selected frames can be deleted from an existing tag using one of two methods.
+First, frames can deleted according to their indices, 1..N, in the tag's
+list of frames:
+
+    -delete <index>		(Delete single frame)
+    -delete <first>,<count>	(Delete <count> frames from <first> on)
+    -delete <first>-<last>	(Delete <first> through <last> frames)
+
+Second, the frame to be deleted can be specified with an empty string
+or zero for its value.  For example:
+
+    -track 0
+    -song ""
+    -year 0
+    -genre ""
+    -back ""
+    -url venue,			(Empty string after comma)
+
+The entire tag can be removed from the file using the "-strip 1" and
+"-strip 2" options for ID3v1 and ID3v2 tags, respectively.
+
+ADVANCED - TEXT INFORMATION AND URL FRAMES
+------------------------------------------
+
+TAG311 can create text and URL frames that are not covered by the
+explicit field options shown above.
+
+    -text <id>,[<text>]			(4-character ID)
+    -text @<id>,[<text>]		(Arbitrary 4-character ID)
+    -text <type>,[<text>]		(Type name)
+
+    -txxx <description>,[<text>]	(User-defined text frame)
+
+    -url <id>,[<url>]			(4-character ID)
+    -url @<id>,[<url>]			(Arbitrary 4-character ID)
+    -url <type>,[<url>]			(Type name)
+
+    -wxxx <description>,[<url>]		(User-defined URL frame)
+
+Use "tag311 -table lut" to see the recognized <id>s and <type>s.
+
+INVOLVED PEOPLE LISTS
+---------------------
+
+TAG311 can create "involved people" (IPLS/TIPL) and "musician credits
+(TMCL) list frames:
+
+    -ipls <list>			(Default: IPLS/TIPL)
+    -ipls <id>,[<list>]
+    -ipls <type>,[<list>]
+
+where <id> is IPLS, TIPL, or TMCL and <type> is INVOLVEDPEOPLE or
+MUSICIANCREDITS.  The list elements are specified in a colon/semicolon
+syntax (quote as necessary for your command shell):
+
+    -ipls "ipls,<role1>:<person1>;..."
+    -ipls "tmcl,<instrument1>:<person1>;..."
+
+PICTURES/IMAGES
+---------------
+
+TAG311 can create "attached picture" (APIC) frames for picture types
+not covered by the "-front" and "-back" options:
+
+    -apic front|back|<type>,[<imageFile>]
+
+where <type> is the ID3 picture type number (0..20) for the cover image.
+Use "tag311 -table pic" to list the ID3 picture types and their numbers.
+
+Images are stored in a tag along with their MIME types.  TAG311 deduces
+the MIME types for GIF, JPG, and PNG images based on their file extensions.
+For other image types, use the "-mime <type>" option before "-front" or
+"-back" or "-apic".
+
+Like comments, multiple images of the same picture type but different
+descriptions are allowed.  Use the "-desc <description>" option to
+embed such images.
+
+Embedded images can be saved to disk files:
+
+    -save front|back,<imageFile> <audioFile>
+    -save <index>,<imageFile> <audioFile>
+
+where <index> is the index 1..N of the picture frame in the audio file's
+tag's list of frames.  The "-save" operation is only applied to the next
+audio file on the command line; TAG311 then exits immediately whether or
+not the save was successful.
+
+GENERAL ENCAPSULATED OBJECTS
+----------------------------
+
+TAG311 can embed arbitrary files as "general encapsulated objects" (GEOB)
+in an ID3v2 tag:
+
+    [-mime <type>] [-desc <description>] -geob <file>
+
+The optional MIME type specifies how to interpret the data object and
+the optional description is used to distinguish between multiple objects,
+if any, in the tag.
+
+Embedded objects can be saved to disk files using the same option as images:
+
+    -save <index>,<dataFile> <audioFile>
+
+where <index> is the index 1..N of the GEOB frame in the audio file's
+tag's list of frames.  The "-save" operation is only applied to the next
+audio file on the command line; TAG311 then exits immediately whether or
+not the save was successful.
+
+LYRICS
+------
+
+Lyrics and transcriptions can be stored in "unsynchronized lyrics" (USLT)
+frames:
+
+    [-lang <code>] [-desc <description>] -lyrics <file>
+
+The text in the lyrics file is assumed to be UTF-8.  Multiple USLT frames
+with different language/description combinations are allowed.
+
+Lyrics in a tag can be saved to disk:
+
+    -save <index>,<lyricsFile> <audioFile>
+
+where <index> is the index 1..N of the USLT frame in the audio file's tag's
+list of frames.  The "-save" operation is only applied to the next file on
+the command line and TAG311 immediately exits whether or not the "-save"
+operation was successful.
+
+PLAY COUNTS & RATINGS
+---------------------
+
+The number of times a track has been played can be stored in a "play count"
+(PCNT) frame:
+
+    -play <count>
+
+or, along with a rating, in a "popularimeter" (POPM) frame:
+
+    -play [<email>],[<rating>],<count>
+
+In the POPM case, the email address is optional (but not the commas) and the
+rating can be (i) an empty string or 0 indicating no rating, or (ii) a value
+in the range 1..255.
+
+MISCELLANEOUS OPERATIONS
+------------------------
+
+By default, TAG311 writes ID3v2 tags as v2.3.  The "-version 2.4" option
+causes TAG311 to output ID3v2.4 tags.
+
+TAG311 silently reads/decodes existing "unsynchronized" tags.  Updated/new
+tags are, by default, written out in non-unsynchronized form, but this can
+be overridden with the "-unsync" option.  (This ID3 feature is rarely, if
+ever, used now; see TAG311's source prologue or the ID3 standards for more
+information.)
+
+An optional CRC can be embedded in an ID3v2 tag.  CRCs in existing tags
+are checked, but failure only produces a warning message.  Updated tags
+have their CRC recomputed.  CRCs can be forced in new tags (or in updated
+CRC-less tags) with the "-crc" option.  (Another rarely seen ID3 feature.)
+
+By default, TAG311 operates on ".mp3" files only.  The "-any <ext>" option
+enables TAG311 to operate on one additional file type, i.e., on both ".mp3"
+and ".<ext>" files.
+
+-----
+Alex Measday, http://www.geonius.com/software/
+
+For a full-featured, Windows GUI program, I use and highly recommend
+Florian Heidenreich's "universal tag editor", Mp3tag.  TAG311 meets
+my simple needs, but Mp3tag offers much more powerful single-file
+and batch processing capabilities.  (https://www.mp3tag.de/en/)

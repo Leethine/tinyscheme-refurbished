@@ -1,0 +1,38 @@
+# $Id: Makefile.palm68k,v 1.2 2021/09/14 15:52:34 alex Exp $
+#
+
+LIBRARY = libxdr.a
+
+SRCS =	\
+	xdr_array.c \
+	xdr.c \
+	xdr_float.c \
+	xdr_mem.c \
+	xdr_rec.c \
+	xdr_reference.c \
+	xdr_sizeof.c \
+	xdr_stdio.c
+
+#	xdr_private.c -- not used.
+
+#*******************************************************************************
+#    Include the "palmos-prc-make-setup.txt" file to setup the common
+#    definitions and rules for building PalmOS libraries and applications
+#    using the PRC-TOOLS build environment.
+#*******************************************************************************
+
+ROOT = ../..
+
+include $(ROOT)/include/palmos-prc-make-setup.txt
+
+#*******************************************************************************
+
+BSD_XDR = $(ROOT)/bsd-xdr
+
+CFLAGS += -g -O -Wall
+CPPFLAGS += \
+	-D_XDR_PRIVATE_H \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(BSD_XDR) \
+	-I$(ROOT)/include/palmos

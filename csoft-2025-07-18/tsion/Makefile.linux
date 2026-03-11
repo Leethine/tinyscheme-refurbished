@@ -1,0 +1,75 @@
+# $Id: Makefile.linux,v 1.2 2016/03/13 01:30:58 alex Exp alex $
+#
+
+PROGRAMS = tsion tsiond
+
+LIBRARY = libtsion.a
+
+SRCS = \
+	funcs_drs.c \
+	funcs_iox.c \
+	funcs_lfn.c \
+	funcs_misc.c \
+	funcs_net.c \
+	funcs_rex.c \
+	funcs_skt.c \
+	funcs_tcp.c \
+	gc_util.c \
+	opaque.c \
+	plist_util.c \
+	scm_util.c
+
+OBJS = $(SRCS:.c=.o)
+
+# Use /OPT directory instead of /USR/LOCAL ...
+#	TINYSCHEME_INC = /usr/local/include/tinyscheme
+#	TINYSCHEME_LIB = -L/usr/local/lib/tinyscheme -ltinyscheme
+# PLATFORM := $(shell uname -m)$(shell uname -s)
+# TINYSCHEME_INC = /opt/tinyscheme
+# TINYSCHEME_LIB = /opt/obj/$(PLATFORM)/tinyscheme/libtinyscheme.a
+
+ROOT = ..
+
+INSTALL_DIR ?= $(HOME)/local/bin/$(arch)
+
+TINYSCHEME_INC ?= $(ROOT)/tinyscheme
+LIBTINYSCHEME_STATIC ?= $(ROOT)/tinyscheme/libtinyscheme.a
+LIBGPL_STATIC = $(ROOT)/libgpl/libgpl.a
+
+CC = gcc
+CFLAGS = -O -g -Wall -pedantic
+CPPFLAGS = \
+	-DSTANDALONE=0 \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(TINYSCHEME_INC)
+LINK.c = $(CC)
+LDFLAGS = -g
+LDLIBS := \
+	$(LIBRARY) \
+	$(LIBGPL_STATIC) \
+	$(LIBTINYSCHEME_STATIC) \
+	-dl -lm
+ARFLAGS = rv
+RANLIB = ranlib
+CP = cp -p
+RM = rm -f
+
+all::	$(LIBRARY) $(PROGRAMS)
+
+$(LIBRARY): $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+tsion: tsion.o $(LIBRARY)
+	$(LINK.c) $(LDFLAGS) -o $@ tsion.o $(LDLIBS)
+
+tsiond: tsiond.o $(LIBRARY)
+	$(LINK.c) $(LDFLAGS) -o $@ tsiond.o $(LDLIBS)
+
+clean::
+	-$(RM) *.o $(LIBRARY) $(PROGRAMS)
+
+install:
+	$(CP) $(PROGRAMS) $(INSTALL_DIR)

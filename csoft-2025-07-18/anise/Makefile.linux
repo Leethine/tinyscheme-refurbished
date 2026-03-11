@@ -1,0 +1,36 @@
+# $Id: Makefile.linux,v 1.4 2012/05/06 22:26:42 alex Exp alex $
+#
+
+PROGRAM = anise
+
+SRCS = \
+	anise.c \
+	ftpClient.c \
+	http_util.c \
+	passClient.c \
+	wwwClient.c
+
+OBJS = $(SRCS:.c=.o)
+
+ROOT = ..
+
+INSTALL_BIN_DIR ?= $(HOME)/local/bin/$(arch)
+
+CFLAGS = -g -O -Wall -pedantic
+CPPFLAGS = \
+	-I. \
+	-I$(ROOT)/include
+LDFLAGS = -g
+LDLIBS = \
+        $(ROOT)/libgpl/libgpl.a \
+        -lm
+
+all::	$(PROGRAM)
+
+$(PROGRAM): $(OBJS)
+
+clean::
+	-$(RM) $(OBJS) $(PROGRAM)
+
+install:
+	cp $(PROGRAM) $(INSTALL_BIN_DIR)

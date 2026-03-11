@@ -1,0 +1,92 @@
+# $Id: Makefile.ndk,v 1.2 2023/06/11 13:01:01 alex Exp $
+#
+#*******************************************************************************
+#
+#    Makefile for Android NDK
+#
+#    NOTE: This Makefile, directly and indirectly, uses GNU MAKE extensions.
+#    Consequently, use GNU MAKE to run it!  (If GNU MAKE is not available to
+#    you, it would be relatively easy to convert this Makefile and the setup
+#    file to a non-GNU Makefile by manually inserting the setup file.)
+#
+#    This Makefile builds software for an Android target using the Android
+#    Native Development Kit (NDK).  The Makefile initially includes
+#    "../include/android-ndk-make-setup.txt" to setup the MAKE variables
+#    for the NDK tools.  See that file for more detailed information,
+#    including how to configure the build environment for different target
+#    architectures and different Android API levels.
+#
+#    The following key MAKE variables are defined in the setup file:
+#
+#        CC and CFLAGS
+#        LD and LFLAGS
+#        AR and RANLIB
+#
+#    NOTE that, if you need to append arguments to CFLAGS or LFLAGS,
+#    use GNU MAKE's "+=" assignment operator.
+#
+#*******************************************************************************
+
+include ../include/android-ndk-make-setup.txt
+
+PROGRAMS = tsion tsiond
+
+LIBRARY = libtsion.a
+
+SRCS =	\
+	funcs_drs.c \
+	funcs_iox.c \
+	funcs_lfn.c \
+	funcs_misc.c \
+	funcs_net.c \
+	funcs_rex.c \
+	funcs_skt.c \
+	funcs_tcp.c \
+	gc_util.c \
+	opaque.c \
+	plist_util.c \
+	scm_util.c
+
+OBJS = $(SRCS:.c=.o)
+
+ARCH = android-$(NDK_TARGET_ARCH)
+INSTALL_DIR = $(HOME)/local/bin/$(ARCH)
+INSTALL_LIB = $(HOME)/local/lib/$(ARCH)
+
+TINYSCHEME_SRC =	/opt/tinyscheme
+TINYSCHEME_OBJ =	/opt/obj/$(ARCH)/tinyscheme
+
+ROOT = ..
+
+ARFLAGS = rv
+CFLAGS += -g -Wall -O
+CPPFLAGS = \
+	-DUSE_CHAR_CLASSIFIERS=1 \
+	-DUSE_DL=0 -DUSE_MATH=1 \
+	-UUSE_SCHEME_STACK -DUSE_STRING_PORTS=1 \
+	-I. \
+	-I$(ROOT)/include \
+	-I$(TINYSCHEME_SRC)
+LDFLAGS += -g \
+	-L$(ROOT)/libgpl \
+	-L$(TINYSCHEME_OBJ)
+LDLIBS = $(LIBRARY) -lgpl -ltinyscheme -lm
+RM = rm -f
+
+all::	$(LIBRARY) $(PROGRAMS)
+
+$(LIBRARY): $(OBJS)
+	$(RM) $@
+	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(RANLIB) $@
+
+variables:
+	@echo CC = $(CC)
+	@echo LD = $(LD)
+
+clean::
+	-$(RM) $(OBJS) $(LIBRARY) $(PROGRAMS)
+
+install:
+	cp $(LIBRARY) $(INSTALL_LIB)
+	cp $(PROGRAMS) $(INSTALL_DIR)
