@@ -74,7 +74,8 @@
 #define  INIT_SCM_DEF73 "(define (cond-eval-and cond-list) (foldr (lambda (x y) (and (cond-eval x) (cond-eval y))) #t cond-list))"
 #define  INIT_SCM_DEF74 "(define (cond-eval-or cond-list) (foldr (lambda (x y) (or (cond-eval x) (cond-eval y))) #f cond-list))"
 #define  INIT_SCM_DEF75 "(define (cond-eval condition) (cond ((symbol? condition) (if (member condition *features*) #t #f)) ((eq? condition #t) #t) ((eq? condition #f) #f) (else (case (car condition) ((and) (cond-eval-and (cdr condition))) ((or) (cond-eval-or (cdr condition))) ((not) (if (not (null? (cddr condition))) (error \"cond-expand : 'not' takes 1 argument\") (not (cond-eval (cadr condition))))) (else (error \"cond-expand : unknown operator\" (car condition)))))))"
-#define  INIT_SCM_DEF76 "(gc-verbose #f)"
+#define  INIT_SCM_DEF76 "(define (println obj . ports) (cond ((null? ports) (display obj) (newline)) ((and (null? (cdr ports)) (port? (car ports))) (display obj (car ports)) (newline (car ports))) (else (error \"Please provide a valid port! Leave empty for \'current-input-port\'.\"))))"
+#define  INIT_SCM_DEF77 "(gc-verbose #f)"
 
 scheme_load_string(&sc, INIT_SCM_DEF00);
 scheme_load_string(&sc, INIT_SCM_DEF01);
@@ -153,3 +154,4 @@ scheme_load_string(&sc, INIT_SCM_DEF73);
 scheme_load_string(&sc, INIT_SCM_DEF74);
 scheme_load_string(&sc, INIT_SCM_DEF75);
 scheme_load_string(&sc, INIT_SCM_DEF76);
+scheme_load_string(&sc, INIT_SCM_DEF77);
