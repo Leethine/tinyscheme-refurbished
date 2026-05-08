@@ -12,6 +12,9 @@
  *
  */
 
+// Large number arithmetics
+#include <gmp.h>
+
 #define _SCHEME_SOURCE
 #include "scm-private.h"
 #include <unistd.h>
@@ -887,11 +890,11 @@ INTERFACE pointer mk_character(scheme *sc, int c) {
 }
 
 /* get number atom (integer) */
-INTERFACE pointer mk_integer(scheme *sc, long num) {
+INTERFACE pointer mk_integer(scheme *sc, long n) {
   pointer x = get_cell(sc, sc->NIL, sc->NIL);
 
   typeflag(x) = (T_NUMBER | T_ATOM);
-  ivalue_unchecked(x) = num;
+  ivalue_unchecked(x) = n;
   set_num_integer(x);
   return (x);
 }
