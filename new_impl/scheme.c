@@ -15,6 +15,7 @@
 #define _SCHEME_SOURCE
 #include "scm-private.h"
 #include <unistd.h>
+#include <time.h>
 
 #include <ctype.h>
 #include <float.h>
@@ -3716,6 +3717,24 @@ static pointer opexe_4(scheme *sc, enum scheme_opcodes op) {
       }
     }
 
+  case OP_SYSTEM: /* system command execution */
+    if (is_string(sc->args)) {
+      int ret = system(strvalue(sc->args));
+      s_return(sc, mk_integer(sc, (long) ret));
+    } else if (is_pair(sc->args) && is_string(car(sc->args)) && cdr(sc->args) == sc->NIL) {
+      int ret = system(strvalue(car(sc->args)));
+      s_return(sc, mk_integer(sc, (long) ret));
+    } else {
+      Error_0(sc, "system: provide 1 argument, must be a string");
+    }
+  
+  case OP_TIME: /* get system time */
+    if (sc->args == sc->NIL) {
+      s_return(sc, mk_integer(sc, time(NULL)));
+    } else {
+      Error_0(sc, "time: too many arguments, should be 0");
+    }
+  
   case OP_REVERSE: /* reverse */
     s_return(sc, reverse(sc, car(sc->args)));
 

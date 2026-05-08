@@ -133,6 +133,8 @@ _OP_DEF(opexe_4, "write-char",                     1,  2,       TST_CHAR TST_OUT
 _OP_DEF(opexe_4, "display",                        1,  2,       TST_ANY TST_OUTPORT,             OP_DISPLAY          )
 _OP_DEF(opexe_4, "newline",                        0,  1,       TST_OUTPORT,                     OP_NEWLINE          )
 _OP_DEF(opexe_4, "error",                          1,  INF_ARG, TST_NONE,                        OP_ERR0             )
+_OP_DEF(opexe_4, "system",                         1,  1,       TST_STRING,                      OP_SYSTEM           )
+_OP_DEF(opexe_4, "time",                           0,  0,       TST_INTEGER,                     OP_TIME             )
 _OP_DEF(opexe_4, 0,                                0,  0,       0,                               OP_ERR1             )
 _OP_DEF(opexe_4, "reverse",                        1,  1,       TST_LIST,                        OP_REVERSE          )
 _OP_DEF(opexe_4, "list*",                          1,  INF_ARG, TST_NONE,                        OP_LIST_STAR        )
