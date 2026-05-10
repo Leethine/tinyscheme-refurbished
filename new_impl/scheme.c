@@ -12,9 +12,6 @@
  *
  */
 
-// Large number arithmetics
-#include <gmp.h>
-
 #define _SCHEME_SOURCE
 #include "scm-private.h"
 #include <unistd.h>
