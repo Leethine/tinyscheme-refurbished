@@ -13,7 +13,7 @@
  */
 
 #define _SCHEME_SOURCE
-#include "scm-private.h"
+#include "scm_private.h"
 #include <unistd.h>
 #include <time.h>
 
