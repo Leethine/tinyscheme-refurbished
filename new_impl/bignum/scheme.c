@@ -12,6 +12,7 @@
  *
  */
 
+#include <stddef.h>
 #define _SCHEME_SOURCE
 #include "scm_private.h"
 #include <unistd.h>
@@ -21,6 +22,8 @@
 #include <float.h>
 #include <limits.h>
 #include <math.h>
+
+#include <tommath.h> // big number arithmetics
 
 #if USE_STRCASECMP
 #include <strings.h>
@@ -140,6 +143,8 @@ static int num_gt(num a, num b);
 static int num_ge(num a, num b);
 static int num_lt(num a, num b);
 static int num_le(num a, num b);
+
+static char * big_num_op(const char* number1, size_t size1, const char* number2, size_t size2, char op);
 
 static double round_per_R5RS(double x);
 static int is_zero_double(double x);
@@ -353,8 +358,8 @@ static void assign_syntax(scheme *sc, char *name);
 static int syntaxnum(pointer p);
 static void assign_proc(scheme *sc, enum scheme_opcodes, char *name);
 
-#define num_ivalue(n) (n.is_fixnum ? (n).value.ivalue : (long)(n).value.rvalue)
-#define num_rvalue(n)                                                          \
+#define NUM_IVALUE(n) (n.is_fixnum ? (n).value.ivalue : (long)(n).value.rvalue)
+#define NUM_RVALUE(n)                                                          \
   (!n.is_fixnum ? (n).value.rvalue : (double)(n).value.ivalue)
 
 static num num_add(num a, num b) {
@@ -363,7 +368,7 @@ static num num_add(num a, num b) {
   if (ret.is_fixnum) {
     ret.value.ivalue = a.value.ivalue + b.value.ivalue;
   } else {
-    ret.value.rvalue = num_rvalue(a) + num_rvalue(b);
+    ret.value.rvalue = NUM_RVALUE(a) + NUM_RVALUE(b);
   }
   return ret;
 }
@@ -374,7 +379,7 @@ static num num_mul(num a, num b) {
   if (ret.is_fixnum) {
     ret.value.ivalue = a.value.ivalue * b.value.ivalue;
   } else {
-    ret.value.rvalue = num_rvalue(a) * num_rvalue(b);
+    ret.value.rvalue = NUM_RVALUE(a) * NUM_RVALUE(b);
   }
   return ret;
 }
@@ -386,7 +391,7 @@ static num num_div(num a, num b) {
   if (ret.is_fixnum) {
     ret.value.ivalue = a.value.ivalue / b.value.ivalue;
   } else {
-    ret.value.rvalue = num_rvalue(a) / num_rvalue(b);
+    ret.value.rvalue = NUM_RVALUE(a) / NUM_RVALUE(b);
   }
   return ret;
 }
@@ -397,7 +402,7 @@ static num num_intdiv(num a, num b) {
   if (ret.is_fixnum) {
     ret.value.ivalue = a.value.ivalue / b.value.ivalue;
   } else {
-    ret.value.rvalue = num_rvalue(a) / num_rvalue(b);
+    ret.value.rvalue = NUM_RVALUE(a) / NUM_RVALUE(b);
   }
   return ret;
 }
@@ -408,7 +413,7 @@ static num num_sub(num a, num b) {
   if (ret.is_fixnum) {
     ret.value.ivalue = a.value.ivalue - b.value.ivalue;
   } else {
-    ret.value.rvalue = num_rvalue(a) - num_rvalue(b);
+    ret.value.rvalue = NUM_RVALUE(a) - NUM_RVALUE(b);
   }
   return ret;
 }
@@ -417,8 +422,8 @@ static num num_rem(num a, num b) {
   num ret;
   long e1, e2, res;
   ret.is_fixnum = a.is_fixnum && b.is_fixnum;
-  e1 = num_ivalue(a);
-  e2 = num_ivalue(b);
+  e1 = NUM_IVALUE(a);
+  e2 = NUM_IVALUE(b);
   res = e1 % e2;
   /* remainder should have same sign as second operand */
   if (res > 0) {
@@ -438,8 +443,8 @@ static num num_mod(num a, num b) {
   num ret;
   long e1, e2, res;
   ret.is_fixnum = a.is_fixnum && b.is_fixnum;
-  e1 = num_ivalue(a);
-  e2 = num_ivalue(b);
+  e1 = NUM_IVALUE(a);
+  e2 = NUM_IVALUE(b);
   res = e1 % e2;
   /* modulo should have same sign as second operand */
   if (res * e2 < 0) {
@@ -455,7 +460,7 @@ static int num_eq(num a, num b) {
   if (is_fixnum) {
     ret = a.value.ivalue == b.value.ivalue;
   } else {
-    ret = num_rvalue(a) == num_rvalue(b);
+    ret = NUM_RVALUE(a) == NUM_RVALUE(b);
   }
   return ret;
 }
@@ -466,7 +471,7 @@ static int num_gt(num a, num b) {
   if (is_fixnum) {
     ret = a.value.ivalue > b.value.ivalue;
   } else {
-    ret = num_rvalue(a) > num_rvalue(b);
+    ret = NUM_RVALUE(a) > NUM_RVALUE(b);
   }
   return ret;
 }
@@ -479,12 +484,63 @@ static int num_lt(num a, num b) {
   if (is_fixnum) {
     ret = a.value.ivalue < b.value.ivalue;
   } else {
-    ret = num_rvalue(a) < num_rvalue(b);
+    ret = NUM_RVALUE(a) < NUM_RVALUE(b);
   }
   return ret;
 }
 
 static int num_le(num a, num b) { return !num_gt(a, b); }
+
+// Big Number operations using tommath, take input and output as string
+static char * big_num_op(const char* number1, size_t size1, const char* number2, size_t size2, char op) {
+  mp_int x1, x2, x3, x4;
+  int err;
+
+  // Init mp_int
+  err = mp_init_multi(&x1, &x2, &x3, &x4, NULL);
+  if (err != MP_OKAY) { return NULL; }
+
+  // Copy input char array and add '\0' to the end
+  size_t bufferSizeInput = size1 > size2 ? size1 : size2;
+  bufferSizeInput++;
+  char num1_array[bufferSizeInput];
+  char num2_array[bufferSizeInput];
+  strncpy(num1_array, number1, size1);
+  num1_array[size1] = '\0';
+  strncpy(num2_array, number2, size2);
+  num2_array[size2] = '\0';
+
+  // Read from input string
+  err = mp_read_radix(&x1,num1_array,10);
+  if (err != MP_OKAY) { return NULL; }
+  err = mp_read_radix(&x2,num2_array,10);
+  if (err != MP_OKAY) { return NULL; }
+
+  // Calculation
+  if      (op == '+') { err = mp_add(&x1, &x2, &x3); }
+  else if (op == '-') { err = mp_sub(&x1, &x2, &x3); }
+  else if (op == '*') { err = mp_mul(&x1, &x2, &x3); }
+  else if (op == '/') { err = mp_div(&x1, &x2, &x3, &x4); }
+  else if (op == '%') { err = mp_div(&x1, &x2, &x4, &x3); }
+  else                { err = mp_add(&x1, &x2, &x3); }
+
+  if (err != MP_OKAY) { return NULL; }
+
+  // Get output number array size
+  int bufferSizeOutput = 0;
+  size_t written_size;
+  err = mp_radix_size (&x3, 10, &bufferSizeOutput);
+  if (err != MP_OKAY) { return NULL; }
+
+  // Write to output number array
+  char * num3_array = (char *) malloc(bufferSizeOutput * sizeof(char));
+  err = mp_to_radix(&x3, num3_array, bufferSizeOutput, &written_size, 10);
+  if (err != MP_OKAY) { return NULL; }
+
+  // clear mp_int
+  mp_clear_multi(&x1, &x2, &x3, &x4, NULL);
+  return num3_array;
+}
 
 /* Round to nearest. Round to even if midway */
 static double round_per_R5RS(double x) {
@@ -3014,6 +3070,7 @@ static pointer opexe_1(scheme *sc, enum scheme_opcodes op) {
 }
 
 static pointer opexe_2(scheme *sc, enum scheme_opcodes op) {
+  char * str_ptr = NULL;
   pointer x;
   num v;
   double dd;
@@ -3201,6 +3258,38 @@ static pointer opexe_2(scheme *sc, enum scheme_opcodes op) {
       Error_0(sc, "modulo: division by zero");
     }
     s_return(sc, mk_number(sc, v));
+
+  /* Big int operators using libtommath */
+  case OP_ADD_BIG: /* big-add */
+    str_ptr = big_num_op(strvalue(car(sc->args)), strlength(car(sc->args)), strvalue(car(cdr(sc->args))), strlength(car(cdr(sc->args))), '+');
+    x = mk_string(sc, str_ptr);
+    sc->free(str_ptr);
+    str_ptr = NULL;
+    s_return(sc, x);
+  case OP_MUL_BIG: /* big-mul */
+    str_ptr = big_num_op(strvalue(car(sc->args)), strlength(car(sc->args)), strvalue(car(cdr(sc->args))), strlength(car(cdr(sc->args))), '*');
+    x = mk_string(sc, str_ptr);
+    sc->free(str_ptr);
+    str_ptr = NULL;
+    s_return(sc, x);
+  case OP_SUB_BIG: /* big-sub */
+    str_ptr = big_num_op(strvalue(car(sc->args)), strlength(car(sc->args)), strvalue(car(cdr(sc->args))), strlength(car(cdr(sc->args))), '-');
+    x = mk_string(sc, str_ptr);
+    sc->free(str_ptr);
+    str_ptr = NULL;
+    s_return(sc, x);
+  case OP_DIV_BIG: /* big-div */
+    str_ptr = big_num_op(strvalue(car(sc->args)), strlength(car(sc->args)), strvalue(car(cdr(sc->args))), strlength(car(cdr(sc->args))), '/');
+    x = mk_string(sc, str_ptr);
+    sc->free(str_ptr);
+    str_ptr = NULL;
+    s_return(sc, x);
+  case OP_MOD_BIG: /* big-mod */
+    str_ptr = big_num_op(strvalue(car(sc->args)), strlength(car(sc->args)), strvalue(car(cdr(sc->args))), strlength(car(cdr(sc->args))), '%');
+    x = mk_string(sc, str_ptr);
+    sc->free(str_ptr);
+    str_ptr = NULL;
+    s_return(sc, x);
 
   case OP_CAR: /* car */
     s_return(sc, caar(sc->args));

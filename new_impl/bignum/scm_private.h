@@ -158,10 +158,9 @@ int dump_size;      /* number of frames allocated for dump stack */
 /* operator code */
 enum scheme_opcodes {
 #define _OP_DEF(A,B,C,D,E,OP) OP,
-#include "opdefines.h"
+#include "op_defs.h"
   OP_MAXDEFINED
 };
-
 
 #define cons(sc,a,b) _cons(sc,a,b,0)
 #define immutable_cons(sc,a,b) _cons(sc,a,b,1)
@@ -195,9 +194,7 @@ int is_proc(pointer p);
 int is_foreign(pointer p);
 char *syntaxname(pointer p);
 int is_closure(pointer p);
-#ifdef USE_MACRO
-int is_macro(pointer p);
-#endif
+
 pointer closure_code(pointer p);
 pointer closure_env(pointer p);
 
